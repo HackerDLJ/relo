@@ -10,6 +10,7 @@ import { useDerived } from "@/lib/derive";
 import { Avatar, Badge, EmptyState, PageHeader, Spinner, fmtRange } from "@/components/ui";
 import { ItemCard, ItemThumb, MatchBreakdown, RefurbBadge, gradeText } from "@/components/item-bits";
 import { perDay, threadIdOf } from "@/lib/chat";
+import { photoCredit } from "@/lib/catalog";
 import { BadgeCheck, ShoppingBag } from "lucide-react";
 import { RequestDialog } from "@/components/forms";
 
@@ -42,7 +43,7 @@ function Detail() {
       <Link href="/discover" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-navy-600 hover:underline"><ArrowLeft className="h-4 w-4" aria-hidden />Discover</Link>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-5">
-          <div className="relative"><ItemThumb item={item} className="h-64 sm:h-80" />{item.refurb && <div className="absolute left-3 top-3"><RefurbBadge item={item} /></div>}</div>
+          <div className="relative"><ItemThumb item={item} className="h-64 sm:h-80" />{item.refurb && <div className="absolute left-3 top-3"><RefurbBadge item={item} /></div>}</div>{photoCredit(item.photo) && <p className="-mt-3 text-[11px] text-mute">{photoCredit(item.photo)}</p>}
           <PageHeader title={item.title} subtitle={item.description}
             actions={mine ? <Link className="btn-primary" href="/listings">Manage listing</Link> : rentable ? <button className="btn-primary" disabled={!!myOpen || !item.active} onClick={() => setReq(true)}>{myOpen ? "Request in progress" : unavailable && item.active ? "Request or join waitlist" : "Request to borrow"}</button> : undefined} />
           <div className="flex flex-wrap items-center gap-2">{rentable && <span className="rounded-full bg-navy px-3 py-1 text-sm font-bold text-white">{perDay(item.pricePerDay)}</span>}{(item.mode ?? "rent") !== "rent" && <span className="rounded-full bg-emerald-700 px-3 py-1 text-sm font-bold text-white">{rentable ? "Or buy " : "Buy "}₹{Math.round(item.salePrice ?? 0).toLocaleString("en-IN")}</span>}{item.sold && <Badge tone="red">Sold</Badge>}<Badge tone="cyan">{item.category}</Badge><Badge tone="gray">{item.condition}</Badge>{!item.active && <Badge tone="red">Paused by owner</Badge>}</div>

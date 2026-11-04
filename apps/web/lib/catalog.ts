@@ -3,13 +3,32 @@ import type { Condition, ListingMode, Refurb } from "@relo/core/engine";
 /** Bundled product photos (apps/web/public/products). Used by the seed and the sample listings. */
 const P = (n: string) => `/products/${n}.jpg`;
 
+const W = "https://thumb.wikimedia.org/wikipedia/commons/thumb/";
+/** [title prefix, thumbnail path, "Photo: file title", licence] from Wikimedia Commons. */
+const WIKI: [string, string, string, string][] = [
+  ["Cordless drill", "1/18/Cordless_drill_Metabo_BS_14%2C4_Li.JPG/960px-Cordless_drill_Metabo_BS_14%2C4_Li.JPG", "Photo: Metabo BS 14,4 Li, Wikimedia Commons", "CC0"],
+  ["7L pressure cooker", "5/58/Pressure_cooker.jpg/960px-Pressure_cooker.jpg", "Photo: Pressure cooker, Wikimedia Commons", "CC BY-SA 3.0"],
+  ["8 ft extension ladder", "0/00/Ladder_aluminum.jpg/960px-Ladder_aluminum.jpg", "Photo: Ladder aluminum, Wikimedia Commons", "CC BY-SA 4.0"],
+  ["DSLR camera kit", "8/8e/EOS_650D.jpg/960px-EOS_650D.jpg", "Photo: EOS 650D, Wikimedia Commons", "CC BY 2.0"],
+  ["Folding study table", "0/07/Taula_de_llit_3c.jpg/960px-Taula_de_llit_3c.jpg", "Photo: Taula de llit, Wikimedia Commons", "CC BY-SA 3.0"],
+  ["Garden sprayer", "8/89/Knapsack_sprayer.jpg/960px-Knapsack_sprayer.jpg", "Photo: Knapsack sprayer, Wikimedia Commons", "CC BY-SA 4.0"],
+  ["28-inch travel suitcase", "8/8e/Samsonite_Proxis.jpg/960px-Samsonite_Proxis.jpg", "Photo: Samsonite Proxis, Wikimedia Commons", "CC BY-SA 4.0"],
+  ["1080p projector", "1/14/InFocus_IN34.jpg/960px-InFocus_IN34.jpg", "Photo: InFocus IN34, Wikimedia Commons", "Public domain"],
+  ["40-piece hand tool kit", "5/50/Husky_tool_set.jpg/960px-Husky_tool_set.jpg", "Photo: Husky tool set, Wikimedia Commons", "CC BY 2.0"],
+  ["Mini projector", "f/fc/3M_pocket_projector_at_B%26H_Photo_jeh.jpg/960px-3M_pocket_projector_at_B%26H_Photo_jeh.jpg", "Photo: 3M pocket projector, Wikimedia Commons", "CC0"],
+];
+
 /** Photos for the original rent-only listings, keyed by the start of the title. */
 export const PHOTO_BY_TITLE: [string, string][] = [
   ["Mountain bicycle", P("bike-orange")],
   ["Portable party speaker", P("party-speaker")],
   ["Tunnel camping tent", P("tent")],
   ["Impact drill", P("bosch-drill")],
+  ...WIKI.map(([k, path, , ]) => [k, `${W}${path}`] as [string, string]),
 ];
+
+/** Credit line for a photo that needs one (Wikimedia Commons images are hotlinked under their free licences). */
+export const photoCredit = (url?: string) => WIKI.find(([, path]) => url === `${W}${path}`)?.slice(2).join(" · ");
 
 export type Listing = {
   title: string; category: string; condition: Condition; estValue: number; description: string; requirements: string[];

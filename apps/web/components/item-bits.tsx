@@ -23,7 +23,7 @@ export function ItemThumb({ item, className = "h-36" }: { item: Pick<Item, "phot
   if (item.photo) {
     // eslint-disable-next-line @next/next/no-img-element
     // Bundled product photos (/products/...) are studio shots on plain backgrounds, so show them whole; uploads fill the frame.
-    const bundled = item.photo.startsWith("/");
+    const bundled = !item.photo.startsWith("data:");
     return <img src={item.photo} alt={item.title} loading="lazy" className={`${className} w-full rounded-xl ${bundled ? "bg-white object-contain" : "object-cover"}`} />;
   }
   return <ProductArt title={item.title} category={item.category} className={`${className} rounded-xl`} />;
