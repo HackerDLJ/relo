@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_SETTINGS, type AppNotification, type BorrowRequest, type Item, type Need, type Offer, type TrustEvent, type User } from "@relo/core/engine";
 import type { AppState } from "./seed";
+import { sampleData } from "./samples";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,14 +44,17 @@ export async function loadRemote(userId: string): Promise<AppState | null> {
   const mine = profiles.find((x) => x.id === userId);
   if (!mine) return null;
   const withId = <T,>(rows: Row[]) => rows.map((x) => ({ ...(x.data as object), id: x.id }) as T);
+  const realItems = withId<Item>(unwrap<Row>(i, "items"));
+  // Pad a quiet neighbourhood with clearly labelled sample listings (browser-only).
+  const sample = realItems.filter((x) => x.active).length < 12 ? sampleData() : { users: [] as User[], items: [] as Item[], trustEvents: [] as TrustEvent[] };
   return {
     version: 1,
-    users: profiles.map((x) => ({ ...(x.data as object), id: x.id }) as User),
-    items: withId<Item>(unwrap<Row>(i, "items")),
+    users: [...profiles.map((x) => ({ ...(x.data as object), id: x.id }) as User), ...sample.users],
+    items: [...realItems, ...sample.items],
     requests: withId<BorrowRequest>(unwrap<Row>(r, "requests")),
     needs: withId<Need>(unwrap<Row>(n, "needs")),
     offers: withId<Offer>(unwrap<Row>(o, "offers")),
-    trustEvents: withId<TrustEvent>(unwrap<Row>(t, "trust events")),
+    trustEvents: [...withId<TrustEvent>(unwrap<Row>(t, "trust events")), ...sample.trustEvents],
     notifications: withId<AppNotification>(unwrap<Row>(nt, "notifications")),
     settings: { ...DEFAULT_SETTINGS, ...(mine.settings ?? {}) },
     currentUserId: userId,
@@ -75,6 +79,7 @@ export async function persistDiff(prev: AppState, next: AppState, userId: string
   for (const t of TABLES) {
     const before = new Map((prev[t.key] as { id: string }[]).map((x) => [x.id, JSON.stringify(x)]));
     for (const row of next[t.key] as { id: string }[]) {
+      if (row.id.startsWith("s-")) continue; // browser-only sample data
       const json = JSON.stringify(row);
       const old = before.get(row.id);
       if (old === json) continue;

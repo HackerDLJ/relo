@@ -14,7 +14,7 @@ export default function DiscoverPage() {
   const { state, me, today, trust } = useStore();
   const { matchFor, userById } = useDerived();
   const [q, setQ] = useState("");
-  const [cat, setCat] = useState("");
+  const [cat, setCat] = useState(() => (typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("cat") ?? ""));
   const [radius, setRadius] = useState(25);
   const [avail, setAvail] = useState<"any" | "now" | "dates">("any");
   const [from, setFrom] = useState("");

@@ -7,7 +7,9 @@ import { estimateImpact, summarizeTrust, overdueStatus } from "@relo/core/engine
 import { useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
 import { Badge, EmptyState, PageHeader, Stat, fmtDate, fmtRange, inr } from "@/components/ui";
-import { ItemCard } from "@/components/item-bits";
+import { ItemCard, CategoryIcon } from "@/components/item-bits";
+import { ProductArt } from "@/components/product-art";
+import { CATEGORIES } from "@relo/core/engine";
 import { ListingForm, NeedForm } from "@/components/forms";
 
 export default function HomePage() {
@@ -38,6 +40,37 @@ export default function HomePage() {
     <>
       <PageHeader eyebrow="Find it. Share it. Borrow it. Return it. Reuse it." title={`Good to see you, ${me.name.split(" ")[0]}`} subtitle={`Neighbours in ${me.area} have ${state.items.filter((i) => i.active && i.ownerId !== me.id).length} items to share and ${state.needs.filter((n) => n.status === "open").length} open needs.`}
         actions={<><button className="btn-primary" onClick={() => setListing(true)}><PackagePlus className="h-4 w-4" aria-hidden />List an item</button><button className="btn-ghost" onClick={() => setNeed(true)}><Megaphone className="h-4 w-4" aria-hidden />Post a need</button></>} />
+
+
+      <section aria-label="Welcome" className="relative mb-8 overflow-hidden rounded-[28px] bg-navy text-white shadow-pop">
+        <div className="absolute inset-0 opacity-90" style={{ background: "radial-gradient(90% 120% at 100% 0%, #36BDF2 0%, rgba(54,189,242,0) 55%), radial-gradient(70% 90% at 0% 100%, #143461 0%, rgba(20,52,97,0) 70%)" }} />
+        <div className="relative grid items-center gap-6 p-6 sm:p-9 md:grid-cols-[1.2fr_1fr]">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-light">Hyperlocal sharing</p>
+            <h2 className="mt-2 text-3xl font-bold leading-[1.1] sm:text-[40px]">Borrow before you buy.<br />Lend what you don&apos;t use.</h2>
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-white/75">Tools, bikes, books and gear from neighbours within a few kilometres. Fair matching, clear dates, and a trust score everyone can see.</p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <Link href="/discover" className="btn-accent">Browse nearby<ArrowRight className="h-4 w-4" aria-hidden /></Link>
+              <button className="btn border border-white/30 bg-white/10 text-white hover:bg-white/20" onClick={() => setListing(true)}><PackagePlus className="h-4 w-4" aria-hidden />List an item</button>
+            </div>
+          </div>
+          <div className="hidden grid-cols-3 gap-3 md:grid" aria-hidden>
+            {[["Cordless drill", "Tools"], ["Mountain bicycle", "Outdoor & Sports"], ["Baby stroller", "Baby & Kids"], ["Portable speaker", "Party & Events"], ["Camping tent", "Outdoor & Sports"], ["Reference books", "Books & Study"]].map(([t, c], i) => (
+              <div key={t} className={`overflow-hidden rounded-2xl border border-white/20 shadow-card ${i % 2 ? "translate-y-3" : ""}`}><ProductArt title={t} category={c} className="aspect-square" /></div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Browse by category" className="mb-8 -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+        <div className="flex gap-2.5">
+          {CATEGORIES.map((c) => (
+            <Link key={c} href={`/discover?cat=${encodeURIComponent(c)}`} className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-navy shadow-card transition hover:-translate-y-0.5 hover:border-cyan hover:shadow-pop">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-cyan-soft text-navy"><CategoryIcon category={c} className="h-4 w-4" /></span>{c}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section aria-label="Your numbers" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Link href="/trust" className="block"><Stat label="Your trust score" value={t.score} sub={t.level} icon={<ShieldCheck className="h-4 w-4" aria-hidden />} /></Link>

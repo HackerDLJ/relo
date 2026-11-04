@@ -369,6 +369,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const user = me();
       const item = s.items.find((x) => x.id === i.itemId);
       if (!item) return fail("That item no longer exists.");
+      if (item.id.startsWith("s-")) return fail("This is a sample listing so you can see how RELO looks. Request something from a real neighbour, or list your own item.");
       if (item.ownerId === user.id) return fail("You can't borrow your own item.");
       if (isSuspended(s, user.id)) return fail("Borrowing is suspended until your overdue item is returned.");
       const today = todayOf(s);

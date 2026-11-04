@@ -4,6 +4,9 @@ import Link from "next/link";
 import { Armchair, Baby, Bike, BookOpen, CookingPot, Luggage, Music, MonitorSmartphone, Sprout, Wrench, Package, MapPin, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { Item, MatchResult, BorrowRequest } from "@relo/core/engine";
 import { Badge, ScoreBar } from "./ui";
+import { ProductArt } from "./product-art";
+
+export const isSample = (id: string) => id.startsWith("s-");
 
 const ICONS: Record<string, LucideIcon> = {
   Tools: Wrench, "Outdoor & Sports": Bike, Electronics: MonitorSmartphone, Kitchen: CookingPot, "Books & Study": BookOpen,
@@ -19,32 +22,29 @@ export function ItemThumb({ item, className = "h-36" }: { item: Pick<Item, "phot
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={item.photo} alt={item.title} className={`${className} w-full rounded-xl object-cover`} />;
   }
-  return (
-    <div className={`${className} grid w-full place-items-center rounded-xl bg-cyan-soft text-navy`} role="img" aria-label={`${item.category} item, no photo`}>
-      <CategoryIcon category={item.category} className="h-10 w-10 opacity-80" />
-    </div>
-  );
+  return <ProductArt title={item.title} category={item.category} className={`${className} rounded-xl`} />;
 }
 
 export function ItemCard({ item, ownerName, trust, match, status, href }: {
   item: Item; ownerName: string; trust: number; match?: MatchResult; status: { label: string; tone: "green" | "amber" | "gray" | "red" }; href: string;
 }) {
   return (
-    <Link href={href} className="card group flex flex-col p-3 transition-shadow hover:shadow-pop focus-visible:shadow-pop">
-      <ItemThumb item={item} />
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[15px] font-semibold leading-snug text-navy">{item.title}</h3>
-          {match && <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-xs font-bold tabular-nums text-cyan">{match.score}%</span>}
-        </div>
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-mute">
-          <span>{item.category}</span>
-          <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" aria-hidden />{match ? `${match.distanceKm.toFixed(1)} km` : item.areaLabel}</span>
+    <Link href={href} className="card group flex flex-col overflow-hidden p-0 transition duration-200 hover:-translate-y-0.5 hover:shadow-pop focus-visible:shadow-pop">
+      <div className="relative">
+        <ItemThumb item={item} className="aspect-[4/3] !rounded-none" />
+        {match && <span className="absolute right-2.5 top-2.5 rounded-full bg-navy/90 px-2.5 py-1 text-xs font-bold tabular-nums text-cyan shadow-card backdrop-blur">{match.score}% match</span>}
+        {isSample(item.id) && <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-navy-600 shadow-card">Sample</span>}
+      </div>
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-3.5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#0E8FC4]">{item.category}</p>
+        <h3 className="mt-0.5 text-[15.5px] font-semibold leading-snug text-navy">{item.title}</h3>
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-mute">
+          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" aria-hidden />{match ? `${match.distanceKm.toFixed(1)} km` : item.areaLabel}</span>
+          <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3" aria-hidden />{ownerName} · {Math.round(trust)}</span>
         </p>
-        <p className="mt-0.5 text-xs text-mute">{ownerName} · <span className="inline-flex items-center gap-0.5"><ShieldCheck className="h-3 w-3" aria-hidden />{Math.round(trust)}</span></p>
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-2.5">
+        <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-line pt-3">
           <Badge tone={status.tone}>{status.label}</Badge>
-          <span className="text-xs font-semibold text-navy-600 group-hover:underline">View</span>
+          <span className="text-xs font-semibold text-navy-600 transition-transform group-hover:translate-x-0.5">View details →</span>
         </div>
       </div>
     </Link>
