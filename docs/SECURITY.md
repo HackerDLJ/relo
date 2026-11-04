@@ -14,3 +14,9 @@ RELO runs in two modes. With `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABAS
 - Reminders and escalations run when a loan party opens the app, not on a server schedule. Notifications are in-app only: no email, SMS or push.
 - Photos are resized and stored inside the record (jsonb). Use Supabase Storage for production.
 - Email confirmation follows your Supabase Auth setting.
+
+## Private negotiation (v0.4)
+- Listings carry an optional `pricePerDay` (₹, 0 = free). Borrowers message the owner and exchange price offers (offer, counter, accept, decline). Accepting sets the rate that the borrower's next request carries.
+- The `messages` table has row-level security: only the sender and the recipient can read a message (`supabase/migrations/0002_messages.sql`). Other members, including other borrowers of the same item, cannot see it.
+- Prices are agreements between the two people. RELO does not collect or move money.
+- Messages are in-app only and polled every 5 seconds while a chat is open (no push or email).

@@ -77,6 +77,8 @@ export type Item = {
   photo?: string;
   /** Assumed replacement value in INR, used only for impact estimates. */
   estValue: number;
+  /** Rental asking price in INR per day. 0 or missing means free to borrow. Negotiable in private messages. */
+  pricePerDay?: number;
   createdAt: string;
 };
 
@@ -109,6 +111,8 @@ export type BorrowRequest = {
   pickedUpAt?: string;
   returnedAt?: ISODate;
   needId?: string;
+  /** Rate in INR per day agreed in private messages (or the listed price) when the request was sent. */
+  pricePerDay?: number;
   extension?: { requestedUntil: ISODate; reason: string; status: ExtensionStatus; requestedAt: string };
   reminderSentAt?: string;
   escalationStage?: number;
@@ -188,4 +192,20 @@ export const DEFAULT_SETTINGS: Settings = {
   warningAfterDays: 3,
   escalationAfterDays: 7,
   suspendAfterDays: 14,
+};
+
+/** A private message between one item's owner and one prospective borrower. */
+export type Message = {
+  id: string;
+  /** `${itemId}:${borrowerId}` */
+  threadId: string;
+  itemId: string;
+  fromId: string;
+  toId: string;
+  kind: "text" | "offer" | "accept" | "decline";
+  body: string;
+  /** INR per day, for offer and accept messages. */
+  price?: number;
+  createdAt: string;
+  readAt?: string;
 };

@@ -4,10 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useStore } from "@/lib/store";
 import { AREAS } from "@/lib/areas";
 import { Spinner } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme";
 
 function Frame({ children, title, sub }: { children: React.ReactNode; title: string; sub: string }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-paper px-4 py-10">
+    <div className="relative grid min-h-screen place-items-center bg-paper px-4 py-10">
+      <div className="absolute right-4 top-4"><ThemeSwitch /></div>
       <div className="w-full max-w-md">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/relo-logo.png" alt="RELO" width={176} height={176} className="mx-auto mb-5 block rounded-2xl" style={{ width: 176, height: 176 }} />

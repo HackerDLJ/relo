@@ -17,11 +17,13 @@ import {
   type BorrowRequest,
   type Condition,
   type Item,
+  type Message,
   type Need,
   type Settings,
   type Urgency,
 } from "@relo/core/engine";
 import { createSeed, realToday, STATE_VERSION, type AppState } from "./seed";
+import { dealState, perDay, threadIdOf } from "./chat";
 import { createProfile as saveProfile, emptyState, loadRemote, persistDiff, remoteEnabled, sb } from "./remote";
 import { AREA_COORDS } from "./areas";
 import { useToast } from "@/components/toast";
@@ -139,11 +141,12 @@ async function providerEnabled(name: "google" | "phone"): Promise<boolean | unde
 
 export type NewItemInput = {
   title: string; description: string; category: string; condition: Condition; areaLabel: string;
-  availableFrom: string; availableUntil: string; requirements: string[]; estValue: number; photo?: string;
+  availableFrom: string; availableUntil: string; requirements: string[]; estValue: number; pricePerDay?: number; photo?: string;
 };
 export type NewRequestInput = {
   itemId: string; from: string; until: string; purpose: string; urgency: Urgency; agreed: string[]; waitlistIfBooked?: boolean; needId?: string;
 };
+export type NewMessageInput = { itemId: string; borrowerId: string; kind: "text" | "offer" | "accept" | "decline"; body?: string; price?: number };
 export type NewNeedInput = {
   title: string; category: string; from: string; until: string; radiusKm: number; details: string; urgency: Urgency;
 };
@@ -167,6 +170,8 @@ type Actions = {
   withdrawOffer(id: string): Result;
   acceptOffer(offerId: string): Result;
   markRead(id?: string): void;
+  sendMessage(i: NewMessageInput): Result;
+  markThreadRead(threadId: string): void;
   updateSettings(p: Partial<Settings>): Result;
   advanceDays(n: number): Result;
   resetDemo(): Result;
@@ -181,6 +186,7 @@ type Ctx = {
   actions: Actions;
   persistError: string | null;
   auth: AuthApi;
+  refresh(): Promise<void>;
 };
 
 export type AuthStatus = "local" | "loading" | "signedOut" | "needsProfile" | "ready";
@@ -263,7 +269,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
-        if (parsed.version === STATE_VERSION && Array.isArray(parsed.items)) s = parsed;
+        if (parsed.version === STATE_VERSION && Array.isArray(parsed.items)) s = { ...parsed, messages: parsed.messages ?? [] };
       }
     } catch {
       s = null;
@@ -280,7 +286,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== KEY || !e.newValue) return;
       try {
-        const parsed = JSON.parse(e.newValue) as AppState;
+        const parsed = { ...(JSON.parse(e.newValue) as AppState) };
+        parsed.messages ??= [];
         ref.current = parsed;
         setState(parsed);
       } catch { /* ignore */ }
@@ -389,10 +396,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const r: BorrowRequest = {
         id: uid("r"), itemId: item.id, borrowerId: user.id, from: i.from, until: i.until, originalUntil: i.until,
         purpose: i.purpose.trim(), urgency: i.urgency, agreedRequirements: i.agreed, submittedAt: nowIso(), status, needId: i.needId,
+        pricePerDay: dealState(s.messages.filter((m) => m.threadId === threadIdOf(item.id, user.id))).agreed ?? item.pricePerDay ?? 0,
       };
       s = { ...s, requests: [r, ...s.requests] };
       s = notify(s, item.ownerId, "request", status === "waitlisted" ? "New waitlisted request" : "New borrowing request",
-        `${user.name} wants ${item.title} from ${i.from} to ${i.until}${status === "waitlisted" ? " (dates currently reserved, so they joined the waitlist)" : ""}.`);
+        `${user.name} wants ${item.title} from ${i.from} to ${i.until} at ${perDay(r.pricePerDay)}${status === "waitlisted" ? " (dates currently reserved, so they joined the waitlist)" : ""}.`);
       commit(s);
       return ok(status === "waitlisted" ? "Dates are reserved, so you joined the waitlist. You'll be told if they free up." : "Request sent to the owner.", r.id);
     };
@@ -673,6 +681,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return ok("Offer accepted. A borrowing request was sent to the owner for final approval.", res.id);
       },
 
+      sendMessage(i) {
+        const s = get();
+        const item = s.items.find((x) => x.id === i.itemId);
+        if (!item) return fail("That item no longer exists.");
+        if (item.id.startsWith("s-")) return fail("This is a sample listing, so there is nobody to message. Message a real neighbour's item instead.");
+        const meId = me().id;
+        const isOwner = item.ownerId === meId;
+        const borrowerId = isOwner ? i.borrowerId : meId;
+        if (!isOwner && i.borrowerId !== meId) return fail("You can only message the owner about this item.");
+        if (borrowerId === item.ownerId) return fail("You can't message yourself.");
+        const threadId = threadIdOf(item.id, borrowerId);
+        const thread = s.messages.filter((m) => m.threadId === threadId);
+        const toId = isOwner ? borrowerId : item.ownerId;
+        const body = (i.body ?? "").trim();
+        let price: number | undefined;
+        if (i.kind === "text") {
+          if (!body) return fail("Type a message first.");
+          if (body.length > 1000) return fail("Keep messages under 1,000 characters.");
+        } else if (i.kind === "offer") {
+          if (!Number.isFinite(i.price) || (i.price as number) < 0 || (i.price as number) > 100000) return fail("Enter a price between ₹0 and ₹1,00,000 per day.");
+          price = Math.round(i.price as number);
+          if (body.length > 1000) return fail("Keep messages under 1,000 characters.");
+        } else {
+          const pending = dealState(thread).pending;
+          if (!pending || pending.fromId === meId) return fail("There's no offer from the other person to answer.");
+          price = pending.price;
+        }
+        const msg: Message = { id: uid("m"), threadId, itemId: item.id, fromId: meId, toId, kind: i.kind, body, price, createdAt: nowIso() };
+        const label = i.kind === "offer" ? `proposed ${perDay(price)} for ${item.title}` : i.kind === "accept" ? `accepted ${perDay(price)} for ${item.title}` : i.kind === "decline" ? `declined the price offer for ${item.title}` : `sent you a message about ${item.title}`;
+        let next: AppState = { ...s, messages: [...s.messages, msg] };
+        next = notify(next, toId, "offer", `${me().name} ${label.split(" for ")[0]}`, body ? `“${body.slice(0, 140)}”` : `Open Messages to reply about ${item.title}.`);
+        commit(next);
+        return ok(i.kind === "offer" ? `Offer of ${perDay(price)} sent.` : i.kind === "accept" ? `Deal agreed at ${perDay(price)}. Send your request to lock the dates.` : i.kind === "decline" ? "Offer declined." : "Message sent.", msg.id);
+      },
+
+      markThreadRead(threadId) {
+        const s = get();
+        const meId = me().id;
+        if (!s.messages.some((m) => m.threadId === threadId && m.toId === meId && !m.readAt)) return;
+        commit({ ...s, messages: s.messages.map((m) => (m.threadId === threadId && m.toId === meId && !m.readAt ? { ...m, readAt: nowIso() } : m)) });
+      },
+
       markRead(id) {
         const s = get();
         const uidMe = s.currentUserId;
@@ -711,10 +761,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const me = state.users.find((u) => u.id === state.currentUserId) ?? state.users[0];
     return {
       state, hydrated, today: todayOf(state), me, persistError, auth,
+      refresh: async () => { if (remoteEnabled && uidRef.current) await reload().catch(() => undefined); },
       trust: (userId: string) => trustOfEvents(state.trustEvents, userId),
       actions,
     };
-  }, [state, hydrated, actions, persistError, auth]);
+  }, [state, hydrated, actions, persistError, auth, reload]);
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
@@ -752,6 +803,7 @@ function validateItem(i: NewItemInput, today: string, partial = false): string |
   if (i.availableUntil < i.availableFrom) return "The availability end date can't be before the start date.";
   if (!partial && i.availableUntil < today) return "The availability window has already ended.";
   if (!(i.estValue >= 100 && i.estValue <= 500000)) return "Enter an approximate replacement value between ₹100 and ₹5,00,000 (used only for impact estimates).";
+  if (i.pricePerDay !== undefined && !(i.pricePerDay >= 0 && i.pricePerDay <= 100000)) return "Price per day must be between ₹0 and ₹1,00,000.";
   return null;
 }
 

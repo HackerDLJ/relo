@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { ArrowLeft, MapPin, ShieldCheck, CalendarCheck } from "lucide-react";
+import { ArrowLeft, MapPin, ShieldCheck, CalendarCheck, MessageSquare } from "lucide-react";
 import { LOCKING, summarizeTrust } from "@relo/core/engine";
 import { useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
 import { Avatar, Badge, EmptyState, PageHeader, Spinner, fmtRange } from "@/components/ui";
 import { ItemCard, ItemThumb, MatchBreakdown } from "@/components/item-bits";
+import { perDay, threadIdOf } from "@/lib/chat";
 import { RequestDialog } from "@/components/forms";
 
 function Detail() {
@@ -41,7 +42,7 @@ function Detail() {
           <ItemThumb item={item} className="h-64 sm:h-80" />
           <PageHeader title={item.title} subtitle={item.description}
             actions={mine ? <Link className="btn-primary" href="/listings">Manage listing</Link> : <button className="btn-primary" disabled={!!myOpen || !item.active} onClick={() => setReq(true)}>{myOpen ? "Request in progress" : unavailable && item.active ? "Request or join waitlist" : "Request to borrow"}</button>} />
-          <div className="flex flex-wrap gap-2"><Badge tone="cyan">{item.category}</Badge><Badge tone="gray">{item.condition}</Badge>{!item.active && <Badge tone="red">Paused by owner</Badge>}</div>
+          <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-navy px-3 py-1 text-sm font-bold text-white">{perDay(item.pricePerDay)}</span><Badge tone="cyan">{item.category}</Badge><Badge tone="gray">{item.condition}</Badge>{!item.active && <Badge tone="red">Paused by owner</Badge>}</div>
           <section className="card p-4"><h2 className="mb-2 text-sm font-semibold text-navy">Lending requirements</h2>
             {item.requirements.length ? <ul className="flex flex-wrap gap-2">{item.requirements.map((r) => <li key={r}><Badge tone="gray">{r}</Badge></li>)}</ul> : <p className="text-sm text-mute">The owner has no special requirements.</p>}</section>
           <section className="card p-4"><h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-navy"><CalendarCheck className="h-4 w-4" aria-hidden />Availability</h2>
@@ -60,6 +61,7 @@ function Detail() {
             <div className="flex items-center gap-3"><Avatar name={owner.name} size={40} /><div><p className="text-sm font-semibold text-navy">{mine ? "You" : owner.name}</p><p className="flex items-center gap-1 text-xs text-mute"><MapPin className="h-3 w-3" aria-hidden />{item.areaLabel} (approx.) · {m.distanceKm.toFixed(1)} km</p></div></div>
             <p className="mt-3 flex items-center gap-1.5 text-sm"><ShieldCheck className="h-4 w-4 text-[#0E8FC4]" aria-hidden /><b className="text-navy">{ownerSummary.score}</b> <span className="text-mute">{ownerSummary.level} · {ownerSummary.lends} lend{ownerSummary.lends === 1 ? "" : "s"} · {ownerSummary.lateReturns} late return{ownerSummary.lateReturns === 1 ? "" : "s"} as a borrower</span></p>
             <Link href="/trust" className="mt-2 inline-block text-xs font-semibold text-navy-600 hover:underline">How trust is calculated</Link>
+            {!mine && !item.id.startsWith("s-") && <Link href={`/messages?t=${encodeURIComponent(threadIdOf(item.id, me.id))}`} className="btn-accent mt-4 w-full"><MessageSquare className="h-4 w-4" aria-hidden />Message owner · negotiate price</Link>}
           </section>
         </aside>
       </div>

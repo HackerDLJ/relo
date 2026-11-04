@@ -1,5 +1,6 @@
 import {
   DEFAULT_SETTINGS,
+  type Message,
   addDays,
   type AppNotification,
   type BorrowRequest,
@@ -23,6 +24,7 @@ export type AppState = {
   offers: Offer[];
   trustEvents: TrustEvent[];
   notifications: AppNotification[];
+  messages: Message[];
   settings: Settings;
   currentUserId: string;
   /** Days added to the real date so overdue flows can be demonstrated. Simulated. */
@@ -90,6 +92,8 @@ export function createSeed(): AppState {
     item("u4", "40-piece hand tool kit", "Tools", "Good", 3000, "Spanners, screwdrivers, pliers, hammer and level in a case.", ["Return complete"], "Vannarpettai"),
     item("u3", "Mini projector (720p)", "Electronics", "Good", 9000, "Compact projector, good for small rooms and demos.", ["Return charged"], "Thachanallur"),
   ];
+  const PRICES: [string, number][] = [["Cordless", 80], ["7L", 0], ["Mountain", 150], ["8 ft", 100], ["DSLR", 600], ["4-person", 200], ["Engineering", 0], ["Folding", 0], ["Portable PA", 400], ["Garden", 0], ["Baby", 120], ["28-inch", 100], ["1080p", 500], ["Impact", 60], ["40-piece", 0], ["Mini", 250]];
+  for (const it of items) it.pricePerDay = PRICES.find(([k]) => it.title.startsWith(k))?.[1] ?? 0;
   const itemId = (title: string) => items.find((i) => i.title.startsWith(title))!.id;
   const I = {
     drill: itemId("Cordless drill"), cooker: itemId("7L"), bike: itemId("Mountain"), ladder: itemId("8 ft"),
@@ -182,7 +186,7 @@ export function createSeed(): AppState {
   ];
 
   return {
-    version: STATE_VERSION, users, items, requests, needs, offers, trustEvents, notifications,
+    version: STATE_VERSION, users, items, requests, needs, offers, trustEvents, notifications, messages: [],
     settings: { ...DEFAULT_SETTINGS }, currentUserId: "u1", clockOffset: 0, seededOn: T,
   };
 }

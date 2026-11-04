@@ -45,6 +45,7 @@ export function sampleData(): { users: User[]; items: Item[]; trustEvents: Trust
       id: `s-i${n + 1}`, ownerId, title, description, category, condition, areaLabel: u.area, lat: u.lat + j, lon: u.lon - j,
       availableFrom: addDays(today, -30), availableUntil: addDays(today, 120), requirements, active: true, estValue,
       createdAt: `${addDays(today, -40 + n)}T09:00:00.000Z`,
+      pricePerDay: [80, 150, 400, 120, 200, 0, 100, 0, 0, 500, 100, 600, 0, 0][n] ?? 0,
     };
   });
   const trustEvents: TrustEvent[] = users.flatMap((u, i) =>

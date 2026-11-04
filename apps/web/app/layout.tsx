@@ -3,6 +3,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/toast";
 import { StoreProvider } from "@/lib/store";
 import { Shell } from "@/components/shell";
+import { THEME_SCRIPT } from "@/components/theme";
 
 export const metadata: Metadata = {
   title: { default: "RELO | Resources deserve another life", template: "%s | RELO" },
@@ -13,7 +14,8 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
       <body>
         <ToastProvider>
           <StoreProvider>

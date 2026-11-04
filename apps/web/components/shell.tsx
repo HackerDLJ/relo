@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
-import { AlarmClock, ArrowLeftRight, Bell, Compass, Home, Hourglass, Leaf, Megaphone, Menu, Package, Send, Settings, ShieldCheck, Sparkles, FlaskConical } from "lucide-react";
+import { AlarmClock, ArrowLeftRight, Bell, Compass, Home, Hourglass, Leaf, Megaphone, Menu, MessageSquare, Package, Send, Settings, ShieldCheck, Sparkles, FlaskConical } from "lucide-react";
 import { useStore, isSuspended } from "@/lib/store";
 import { overdueStatus } from "@relo/core/engine";
 import { Avatar, Modal, Spinner, SimBadge, ago } from "./ui";
 import { AuthGate } from "./auth";
+import { ThemeSwitch } from "./theme";
 
 export const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/requests", label: "Community Requests", icon: Megaphone },
+  { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/listings", label: "My Listings", icon: Package },
   { href: "/borrowing", label: "My Borrowing Requests", icon: Send },
   { href: "/loans", label: "My Loans", icon: ArrowLeftRight },
@@ -33,7 +35,8 @@ function useBadges() {
     const waitlist = state.requests.filter((r) => r.borrowerId === me.id && r.status === "waitlisted").length;
     const overdue = state.requests.filter((r) => r.status === "active" && (r.borrowerId === me.id || mine.has(r.itemId)) && overdueStatus(r, today, state.settings).daysLate > 0).length;
     const mineReq = state.requests.filter((r) => r.borrowerId === me.id && (r.status === "pending")).length;
-    return { "/listings": incoming, "/waitlist": waitlist, "/returns": overdue, "/borrowing": mineReq } as Record<string, number>;
+    const unreadMsgs = state.messages.filter((m) => m.toId === me.id && !m.readAt).length;
+    return { "/messages": unreadMsgs, "/listings": incoming, "/waitlist": waitlist, "/returns": overdue, "/borrowing": mineReq } as Record<string, number>;
   }, [state, me.id, today]);
 }
 
@@ -102,6 +105,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
           <Link href="/" className="md:hidden" aria-label="RELO home"><Logo size={60} /></Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <ThemeSwitch />
             {live ? (
               <div className="flex items-center gap-2 text-xs text-mute">
                 <Avatar name={me.name} size={28} />
@@ -136,7 +140,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       </div>
 
       <nav aria-label="Quick navigation" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        {[NAV[0], NAV[1], NAV[5], NAV[3]].map(({ href, label, icon: Icon }) => {
+        {(["/", "/discover", "/messages", "/listings"] as const).map((h) => NAV.find((n) => n.href === h)!).map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" : path.startsWith(href);
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex flex-col items-center gap-0.5 py-2.5 text-[10.5px] font-semibold ${active ? "text-navy" : "text-mute"}`}>

@@ -6,6 +6,8 @@ import type { Item } from "@relo/core/engine";
 import { useAct, useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
 import { Avatar, Badge, Field, Modal, ScoreBar, fmtRange, ago } from "./ui";
+import Link from "next/link";
+import { threadIdOf, perDay } from "@/lib/chat";
 import { STATUS_LABEL, STATUS_TONE } from "./item-bits";
 
 /** Ranked, explainable queue of competing requests for one item. */
@@ -36,7 +38,7 @@ export function OwnerQueue({ item }: { item: Item }) {
               <Avatar name={b.name} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-navy">{b.name} <span className="font-normal text-mute">· {fmtRange(r.from, r.until)}</span></p>
-                <p className="truncate text-xs text-mute">“{r.purpose}” · {ago(r.submittedAt)}</p>
+                <p className="truncate text-xs text-mute">“{r.purpose}” · {ago(r.submittedAt)} · {perDay(r.pricePerDay)}</p>
               </div>
               <div className="flex items-center gap-2"><Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge><span className="rounded-full bg-navy px-2 py-0.5 text-xs font-bold tabular-nums text-cyan" title="Priority score out of 100">{priority.total}</span></div>
             </div>
@@ -44,6 +46,7 @@ export function OwnerQueue({ item }: { item: Item }) {
               <button className="btn-primary btn-sm" onClick={() => act(() => actions.decideRequest(r.id, "approve"))}>Approve</button>
               {r.status === "pending" && <button className="btn-ghost btn-sm" onClick={() => act(() => actions.decideRequest(r.id, "waitlist"))}><Clock className="h-3.5 w-3.5" aria-hidden />Waitlist</button>}
               <button className="btn-danger btn-sm" onClick={() => { setDeclining(r.id); setReason(""); }}>Decline</button>
+              <Link href={`/messages?t=${encodeURIComponent(threadIdOf(r.itemId, r.borrowerId))}`} className="btn-ghost btn-sm">Message</Link>
               <button onClick={() => setOpen(isOpen ? null : r.id)} aria-expanded={isOpen} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-navy-600 hover:underline">Why this rank?<ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden /></button>
             </div>
             {isOpen && (

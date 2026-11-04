@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, AlertTriangle } from "lucide-react";
 import { CATEGORIES, CONDITIONS, validateBorrowDates, findConflict, LOCKING, type Condition, type Item, type Need, type Urgency } from "@relo/core/engine";
+import { dealState, perDay, threadIdOf } from "@/lib/chat";
 import { useAct, useStore, type NewItemInput } from "@/lib/store";
 import { useToast } from "./toast";
 import { useDerived } from "@/lib/derive";
@@ -50,6 +51,7 @@ export function RequestDialog({ item, open, onClose, defaults, needId }: { item:
       </>}>
       <div className="space-y-4">
         <p className="text-sm text-mute">The owner shares this item {fmtRange(item.availableFrom, item.availableUntil)}. Once approved, your dates are locked so nobody else can book them.</p>
+        <PriceLine item={item} from={from} until={until} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Start date" error={touched && !from ? "Choose a start date." : null}>{(id) => <input id={id} type="date" className="input" min={today} value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
           <Field label="Return date" error={dateError}>{(id) => <input id={id} type="date" className="input" min={from || today} value={until} onChange={(e) => setUntil(e.target.value)} />}</Field>
@@ -121,7 +123,7 @@ function shrink(file: File): Promise<string> {
 export function ListingForm({ open, onClose, item }: { open: boolean; onClose(): void; item?: Item }) {
   const { state, me, today, actions } = useStore();
   const toast = useToast();
-  const blank = useMemo(() => ({ title: "", category: "", condition: "Good" as Condition, description: "", areaLabel: me.area, availableFrom: today, availableUntil: "", estValue: "", requirements: [] as string[], custom: "", photo: undefined as string | undefined }), [me.area, today]);
+  const blank = useMemo(() => ({ title: "", category: "", condition: "Good" as Condition, description: "", areaLabel: me.area, availableFrom: today, availableUntil: "", estValue: "", price: "", requirements: [] as string[], custom: "", photo: undefined as string | undefined }), [me.area, today]);
   const [f, setF] = useState(blank);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -130,7 +132,7 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
   useEffect(() => {
     if (!open) return;
     setErr(null);
-    setF(item ? { title: item.title, category: item.category, condition: item.condition, description: item.description, areaLabel: item.areaLabel, availableFrom: item.availableFrom, availableUntil: item.availableUntil, estValue: String(item.estValue), requirements: item.requirements.filter((r) => COMMON_REQS.includes(r)), custom: item.requirements.filter((r) => !COMMON_REQS.includes(r)).join(", "), photo: item.photo } : blank);
+    setF(item ? { title: item.title, category: item.category, condition: item.condition, description: item.description, areaLabel: item.areaLabel, availableFrom: item.availableFrom, availableUntil: item.availableUntil, estValue: String(item.estValue), price: String(item.pricePerDay ?? 0), requirements: item.requirements.filter((r) => COMMON_REQS.includes(r)), custom: item.requirements.filter((r) => !COMMON_REQS.includes(r)).join(", "), photo: item.photo } : blank);
   }, [open, item, blank]);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -144,7 +146,7 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
   const save = () => {
     const input: NewItemInput = {
       title: f.title, description: f.description, category: f.category, condition: f.condition, areaLabel: f.areaLabel,
-      availableFrom: f.availableFrom, availableUntil: f.availableUntil, estValue: Number(f.estValue), photo: f.photo,
+      availableFrom: f.availableFrom, availableUntil: f.availableUntil, estValue: Number(f.estValue), pricePerDay: f.price === "" ? 0 : Number(f.price), photo: f.photo,
       requirements: [...f.requirements, ...f.custom.split(",").map((s) => s.trim()).filter(Boolean)],
     };
     const res = item ? actions.updateItem(item.id, input) : actions.addItem(input);
@@ -183,6 +185,7 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
           <Field label="Approximate location" hint="Neighbourhood only. Never your exact address.">{(id) => <select id={id} className="input" value={f.areaLabel} onChange={(e) => set("areaLabel", e.target.value)}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select>}</Field>
           <Field label="Approx. replacement value (₹)" hint="Used only for impact estimates.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.estValue} onChange={(e) => set("estValue", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 4500" />}</Field>
         </div>
+        <Field label="Price per day (₹)" hint="0 means free to borrow. Borrowers can message you to negotiate; only you two see that chat.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.price} onChange={(e) => set("price", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 100, or 0 for free" />}</Field>
         <fieldset>
           <legend className="label">Lending requirements</legend>
           <div className="flex flex-wrap gap-2">{COMMON_REQS.map((r) => {
@@ -232,3 +235,17 @@ export function NeedForm({ open, onClose }: { open: boolean; onClose(): void }) 
 
 export type { Need };
 export { findConflict };
+
+/** Shows the rate this request will carry: the deal agreed in private messages, else the listed price. */
+function PriceLine({ item, from, until }: { item: Item; from: string; until: string }) {
+  const { state, me } = useStore();
+  const deal = dealState(state.messages.filter((m) => m.threadId === threadIdOf(item.id, me.id))).agreed;
+  const rate = deal ?? item.pricePerDay ?? 0;
+  const days = from && until && until >= from ? Math.round((Date.parse(until) - Date.parse(from)) / 86_400_000) + 1 : 0;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cyan-soft p-3 text-sm text-navy-700">
+      <span><b>{perDay(rate)}</b>{deal !== undefined && deal !== (item.pricePerDay ?? 0) ? <span className="ml-1.5 text-xs">(your negotiated rate; listed {perDay(item.pricePerDay)})</span> : null}</span>
+      {rate > 0 && days > 0 && <span className="font-semibold">{days} day{days > 1 ? "s" : ""} · ₹{(rate * days).toLocaleString("en-IN")} total</span>}
+    </div>
+  );
+}

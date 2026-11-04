@@ -5,6 +5,7 @@ import { Armchair, Baby, Bike, BookOpen, CookingPot, Luggage, Music, MonitorSmar
 import type { Item, MatchResult, BorrowRequest } from "@relo/core/engine";
 import { Badge, ScoreBar } from "./ui";
 import { ProductArt } from "./product-art";
+import { perDay } from "@/lib/chat";
 
 export const isSample = (id: string) => id.startsWith("s-");
 
@@ -44,7 +45,7 @@ export function ItemCard({ item, ownerName, trust, match, status, href }: {
         </p>
         <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-line pt-3">
           <Badge tone={status.tone}>{status.label}</Badge>
-          <span className="text-xs font-semibold text-navy-600 transition-transform group-hover:translate-x-0.5">View details →</span>
+          <span className="text-sm font-bold text-navy">{perDay(item.pricePerDay)}</span>
         </div>
       </div>
     </Link>
