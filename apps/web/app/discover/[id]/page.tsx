@@ -12,6 +12,7 @@ import { ItemCard, ItemThumb, MatchBreakdown, RefurbBadge, gradeText } from "@/c
 import { perDay, threadIdOf } from "@/lib/chat";
 import { photoCredit } from "@/lib/catalog";
 import { BadgeCheck, ShoppingBag } from "lucide-react";
+import { PayButton } from "@/components/pay";
 import { RequestDialog } from "@/components/forms";
 
 function Detail() {
@@ -72,7 +73,8 @@ function Detail() {
             <Link href="/trust" className="mt-2 inline-block text-xs font-semibold text-navy-600 hover:underline">How trust is calculated</Link>
             {!mine && !item.id.startsWith("s-") && rentable && <Link href={`/messages?t=${encodeURIComponent(threadIdOf(item.id, me.id))}`} className="btn-accent mt-4 w-full"><MessageSquare className="h-4 w-4" aria-hidden />Message owner · negotiate rent</Link>}
             {!mine && !item.id.startsWith("s-") && buyable && <Link href={`/messages?t=${encodeURIComponent(threadIdOf(item.id, me.id, "buy"))}`} className="btn-primary mt-3 w-full"><ShoppingBag className="h-4 w-4" aria-hidden />Make an offer to buy</Link>}
-            {!mine && buyable && <p className="mt-2 text-xs text-mute">RELO doesn’t take payments. Agree a price in chat, inspect the item, then pay the owner directly.</p>}
+            {!mine && buyable && !item.id.startsWith("s-") && <div className="mt-3 flex justify-center"><PayButton item={item} className="btn-accent w-full" /></div>}
+            {!mine && buyable && <p className="mt-2 text-xs text-mute">Agree a price in chat first if you want to negotiate, then pay online or pay the owner directly after you inspect the item.</p>}
           </section>
         </aside>
       </div>

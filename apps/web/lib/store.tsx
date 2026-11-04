@@ -275,7 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
-        if (parsed.version === STATE_VERSION && Array.isArray(parsed.items)) s = { ...parsed, messages: parsed.messages ?? [] };
+        if (parsed.version === STATE_VERSION && Array.isArray(parsed.items)) s = { ...parsed, messages: parsed.messages ?? [], payments: parsed.payments ?? [] };
       }
     } catch {
       s = null;
@@ -294,6 +294,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = { ...(JSON.parse(e.newValue) as AppState) };
         parsed.messages ??= [];
+        parsed.payments ??= [];
         ref.current = parsed;
         setState(parsed);
       } catch { /* ignore */ }

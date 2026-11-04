@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Confirm, EmptyState, Badge, PageHeader, Segmented, fmtRange, ago } from "@/components/ui";
 import { ItemCard, STATUS_LABEL, STATUS_TONE } from "@/components/item-bits";
+import { PayButton } from "@/components/pay";
 import { useAct, useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
 import type { BorrowRequest } from "@relo/core/engine";
@@ -38,6 +39,7 @@ export default function BorrowingPage() {
               </div>
               <p className="mt-2 text-sm text-ink">“{r.purpose}”</p>
               {r.status === "approved" && <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Approved. {fmtRange(r.from, r.until)} is locked for you. Collect it on {r.from}.</p>}
+              {r.status === "approved" && <div className="mt-2"><PayButton item={item} request={r} /></div>}
               {r.status === "pending" && <p className="mt-2 text-xs text-mute">Waiting for {userById(item.ownerId).name} to review. Your request is ranked against others using match, trust, urgency and more, not just who asked first.</p>}
               {r.status === "waitlisted" && <p className="mt-2 rounded-xl bg-cyan-soft p-3 text-sm text-navy-700">You're waitlisted. If the current reservation is cancelled or the item comes back, you're moved back to review with your original submission time. {queue.length > 1 ? `${queue.length} people are waiting.` : ""}</p>}
               {r.status === "declined" && <p className="mt-2 text-sm text-red-800">Declined: {r.declineReason ?? "not available"}.</p>}

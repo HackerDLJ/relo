@@ -227,3 +227,18 @@ export type Message = {
   createdAt: string;
   readAt?: string;
 };
+
+/** A completed online payment. Written only by the server after Razorpay confirms it; clients can read, never write. */
+export type Payment = {
+  id: string;
+  kind: "sale" | "rent";
+  itemId: string;
+  requestId?: string;
+  buyerId: string;
+  sellerId: string;
+  /** Whole rupees. */
+  amount: number;
+  orderId: string;
+  paymentId: string;
+  paidAt: string;
+};
