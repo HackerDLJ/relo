@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Trash2, AlertTriangle } from "lucide-react";
-import { CATEGORIES, CONDITIONS, validateBorrowDates, findConflict, LOCKING, type Condition, type Item, type Need, type Urgency } from "@relo/core/engine";
+import { CATEGORIES, CONDITIONS, validateBorrowDates, findConflict, LOCKING, addDays, type Condition, type Item, type ListingMode, type Need, type RefurbGrade, type Urgency } from "@relo/core/engine";
 import { dealState, perDay, threadIdOf } from "@/lib/chat";
 import { useAct, useStore, type NewItemInput } from "@/lib/store";
 import { useToast } from "./toast";
@@ -123,7 +123,7 @@ function shrink(file: File): Promise<string> {
 export function ListingForm({ open, onClose, item }: { open: boolean; onClose(): void; item?: Item }) {
   const { state, me, today, actions } = useStore();
   const toast = useToast();
-  const blank = useMemo(() => ({ title: "", category: "", condition: "Good" as Condition, description: "", areaLabel: me.area, availableFrom: today, availableUntil: "", estValue: "", price: "", requirements: [] as string[], custom: "", photo: undefined as string | undefined }), [me.area, today]);
+  const blank = useMemo(() => ({ title: "", category: "", condition: "Good" as Condition, description: "", areaLabel: me.area, availableFrom: today, availableUntil: "", estValue: "", price: "", mode: "rent" as ListingMode, salePrice: "", isRefurb: false, grade: "B" as RefurbGrade, warranty: "3", work: "", requirements: [] as string[], custom: "", photo: undefined as string | undefined }), [me.area, today]);
   const [f, setF] = useState(blank);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -132,7 +132,7 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
   useEffect(() => {
     if (!open) return;
     setErr(null);
-    setF(item ? { title: item.title, category: item.category, condition: item.condition, description: item.description, areaLabel: item.areaLabel, availableFrom: item.availableFrom, availableUntil: item.availableUntil, estValue: String(item.estValue), price: String(item.pricePerDay ?? 0), requirements: item.requirements.filter((r) => COMMON_REQS.includes(r)), custom: item.requirements.filter((r) => !COMMON_REQS.includes(r)).join(", "), photo: item.photo } : blank);
+    setF(item ? { title: item.title, category: item.category, condition: item.condition, description: item.description, areaLabel: item.areaLabel, availableFrom: item.availableFrom, availableUntil: item.availableUntil, estValue: String(item.estValue), price: String(item.pricePerDay ?? 0), mode: item.mode ?? "rent", salePrice: item.salePrice ? String(item.salePrice) : "", isRefurb: !!item.refurb, grade: item.refurb?.grade ?? "B", warranty: String(item.refurb?.warrantyMonths ?? 3), work: item.refurb?.work ?? "", requirements: item.requirements.filter((r) => COMMON_REQS.includes(r)), custom: item.requirements.filter((r) => !COMMON_REQS.includes(r)).join(", "), photo: item.photo } : blank);
   }, [open, item, blank]);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -146,7 +146,9 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
   const save = () => {
     const input: NewItemInput = {
       title: f.title, description: f.description, category: f.category, condition: f.condition, areaLabel: f.areaLabel,
-      availableFrom: f.availableFrom, availableUntil: f.availableUntil, estValue: Number(f.estValue), pricePerDay: f.price === "" ? 0 : Number(f.price), photo: f.photo,
+      availableFrom: f.availableFrom, availableUntil: f.mode === "sell" && !f.availableUntil ? addDays(today, 365) : f.availableUntil, estValue: Number(f.estValue), pricePerDay: f.mode === "sell" ? 0 : f.price === "" ? 0 : Number(f.price), photo: f.photo,
+      mode: f.mode, salePrice: f.mode === "rent" ? undefined : Number(f.salePrice),
+      refurb: f.isRefurb ? { grade: f.grade, warrantyMonths: Number(f.warranty), work: f.work.trim() } : undefined,
       requirements: [...f.requirements, ...f.custom.split(",").map((s) => s.trim()).filter(Boolean)],
     };
     const res = item ? actions.updateItem(item.id, input) : actions.addItem(input);
@@ -164,7 +166,7 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
           <div className="w-28 shrink-0 sm:w-36"><ItemThumb item={{ photo: f.photo, category: f.category || "Tools", title: f.title || "Preview" }} className="h-28 sm:h-32" /></div>
           <div className="space-y-2 text-sm">
             <p className="font-semibold text-ink">Photo</p>
-            <p className="text-xs text-mute">Optional. Resized and stored only in this browser in the prototype.</p>
+            <p className="text-xs text-mute">Optional but it helps things move. Photos are resized before saving.</p>
             <div className="flex flex-wrap gap-2">
               <label className="btn-ghost btn-sm cursor-pointer"><ImagePlus className="h-4 w-4" aria-hidden />{f.photo ? "Replace" : "Upload"}<input type="file" accept="image/*" className="sr-only" onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} /></label>
               {f.photo && <button className="btn-danger btn-sm" onClick={() => set("photo", undefined)}><Trash2 className="h-4 w-4" aria-hidden />Remove</button>}
@@ -172,12 +174,21 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
           </div>
         </div>
         <Field label="Item name">{(id) => <input id={id} className="input" value={f.title} maxLength={80} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Cordless drill with bit set" />}</Field>
+        <fieldset>
+          <legend className="label">What do you want to do with it?</legend>
+          <div className="grid grid-cols-3 gap-2" role="radiogroup">
+            {([["rent", "Lend or rent", "Per-day price, or free"], ["sell", "Sell", "One-time price"], ["both", "Both", "Rent or buy"]] as const).map(([v, t, h]) => (
+              <button type="button" key={v} role="radio" aria-checked={f.mode === v} onClick={() => set("mode", v)} className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${f.mode === v ? "border-navy bg-navy text-white" : "border-line bg-white text-ink hover:bg-paper"}`}>
+                <span className="block text-sm font-semibold">{t}</span><span className={`block text-[11px] ${f.mode === v ? "text-white/70" : "text-mute"}`}>{h}</span>
+              </button>))}
+          </div>
+        </fieldset>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Category">{(id) => <select id={id} className="input" value={f.category} onChange={(e) => set("category", e.target.value)}><option value="">Select…</option>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>}</Field>
           <Field label="Condition">{(id) => <select id={id} className="input" value={f.condition} onChange={(e) => set("condition", e.target.value as Condition)}>{CONDITIONS.map((c) => <option key={c}>{c}</option>)}</select>}</Field>
         </div>
         <Field label="Description" hint="What's included, how it should be handled.">{(id) => <textarea id={id} rows={3} className="input" value={f.description} onChange={(e) => set("description", e.target.value)} />}</Field>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={f.mode === "sell" ? "hidden" : "grid gap-3 sm:grid-cols-2"}>
           <Field label="Available from">{(id) => <input id={id} type="date" className="input" value={f.availableFrom} onChange={(e) => set("availableFrom", e.target.value)} />}</Field>
           <Field label="Available until">{(id) => <input id={id} type="date" className="input" min={f.availableFrom} value={f.availableUntil} onChange={(e) => set("availableUntil", e.target.value)} />}</Field>
         </div>
@@ -185,7 +196,18 @@ export function ListingForm({ open, onClose, item }: { open: boolean; onClose():
           <Field label="Approximate location" hint="Neighbourhood only. Never your exact address.">{(id) => <select id={id} className="input" value={f.areaLabel} onChange={(e) => set("areaLabel", e.target.value)}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select>}</Field>
           <Field label="Approx. replacement value (₹)" hint="Used only for impact estimates.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.estValue} onChange={(e) => set("estValue", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 4500" />}</Field>
         </div>
-        <Field label="Price per day (₹)" hint="0 means free to borrow. Borrowers can message you to negotiate; only you two see that chat.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.price} onChange={(e) => set("price", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 100, or 0 for free" />}</Field>
+        {f.mode !== "sell" && <Field label="Price per day (₹)" hint="0 means free to borrow. Borrowers can message you to negotiate; only you two see that chat.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.price} onChange={(e) => set("price", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 100, or 0 for free" />}</Field>}
+        {f.mode !== "rent" && <Field label="Sale price (₹)" hint="Buyers can message you to negotiate. Payment and handover happen directly between you two.">{(id) => <input id={id} inputMode="numeric" className="input" value={f.salePrice} onChange={(e) => set("salePrice", e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 4500" />}</Field>}
+        <fieldset className="rounded-xl border border-line p-3">
+          <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" className="mt-1 h-4 w-4 accent-[#061B3A]" checked={f.isRefurb} onChange={(e) => set("isRefurb", e.target.checked)} />
+            <span><span className="block text-sm font-semibold text-ink">This item was repaired or refurbished</span><span className="block text-xs text-mute">Shows a Refurbished badge, grade and warranty so buyers know what they get.</span></span></label>
+          {f.isRefurb && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Grade">{(id) => <select id={id} className="input" value={f.grade} onChange={(e) => set("grade", e.target.value as RefurbGrade)}><option value="A">A · Like new</option><option value="B">B · Good, light wear</option><option value="C">C · Works well, visible wear</option></select>}</Field>
+              <Field label="Your warranty">{(id) => <select id={id} className="input" value={f.warranty} onChange={(e) => set("warranty", e.target.value)}>{[["0", "No warranty"], ["1", "1 month"], ["3", "3 months"], ["6", "6 months"], ["12", "12 months"]].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>}</Field>
+              <div className="sm:col-span-2"><Field label="What was repaired or replaced?">{(id) => <input id={id} className="input" maxLength={120} value={f.work} onChange={(e) => set("work", e.target.value)} placeholder="e.g. New battery, cleaned and tested" />}</Field></div>
+            </div>)}
+        </fieldset>
         <fieldset>
           <legend className="label">Lending requirements</legend>
           <div className="flex flex-wrap gap-2">{COMMON_REQS.map((r) => {

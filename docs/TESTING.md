@@ -10,6 +10,7 @@ Run on 2026-11-04 against the production build (`next build` then `next start`).
 Start the app (`pnpm --filter @relo/web build && pnpm --filter @relo/web exec next start -p 3100`), then:
 ```
 python3 apps/web/e2e/smoke.py       # every route, desktop 1280px and mobile 390px, console errors, horizontal overflow
+python3 apps/web/e2e/sale.py        # sell + refurbished flow (15 checks)
 python3 apps/web/e2e/lifecycle.py   # full workflow
 ```
 - **Smoke:** 13 routes x 2 viewports render; no console errors; no horizontal overflow after the Trust-page fix.

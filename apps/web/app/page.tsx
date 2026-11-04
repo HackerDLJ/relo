@@ -9,7 +9,7 @@ import { useDerived } from "@/lib/derive";
 import { Badge, EmptyState, PageHeader, Stat, fmtDate, fmtRange, inr } from "@/components/ui";
 import { ItemCard, CategoryIcon } from "@/components/item-bits";
 import { ProductArt } from "@/components/product-art";
-import { CATEGORIES } from "@relo/core/engine";
+import { CATEGORIES, canRent } from "@relo/core/engine";
 import { ListingForm, NeedForm } from "@/components/forms";
 
 export default function HomePage() {
@@ -32,6 +32,7 @@ export default function HomePage() {
 
   const statusOf = (id: string) => {
     const it = state.items.find((i) => i.id === id)!;
+    if (!canRent(it)) return { label: "For sale", tone: "cyan" as const };
     const free = matchFor(it).parts.find((p) => p.key === "dates")!;
     return free.points >= free.max * 0.7 ? { label: "Available", tone: "green" as const } : free.points > 0 ? { label: "Partly booked", tone: "amber" as const } : { label: "Booked", tone: "gray" as const };
   };
@@ -47,16 +48,18 @@ export default function HomePage() {
         <div className="relative grid items-center gap-6 p-6 sm:p-9 md:grid-cols-[1.2fr_1fr]">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-light">Hyperlocal sharing</p>
-            <h2 className="mt-2 text-3xl font-bold leading-[1.1] sm:text-[40px]">Borrow before you buy.<br />Lend what you don&apos;t use.</h2>
-            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-white/75">Tools, bikes, books and gear from neighbours within a few kilometres. Fair matching, clear dates, and a trust score everyone can see.</p>
+            <h2 className="mt-2 text-3xl font-bold leading-[1.1] sm:text-[40px]">Borrow before you buy.<br />Buy refurbished, not new.</h2>
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-white/75">Tools, bikes, books and gear from neighbours within a few kilometres. Borrow it, rent it, or buy it refurbished at a fair price. Clear dates and a trust score everyone can see.</p>
             <div className="mt-5 flex flex-wrap gap-2.5">
               <Link href="/discover" className="btn-accent">Browse nearby<ArrowRight className="h-4 w-4" aria-hidden /></Link>
+              <Link href="/discover?kind=refurb" className="btn border border-white/30 bg-white/10 text-white hover:bg-white/20">Shop refurbished</Link>
               <button className="btn border border-white/30 bg-white/10 text-white hover:bg-white/20" onClick={() => setListing(true)}><PackagePlus className="h-4 w-4" aria-hidden />List an item</button>
             </div>
           </div>
           <div className="hidden grid-cols-3 gap-3 md:grid" aria-hidden>
-            {[["Cordless drill", "Tools"], ["Mountain bicycle", "Outdoor & Sports"], ["Baby stroller", "Baby & Kids"], ["Portable speaker", "Party & Events"], ["Camping tent", "Outdoor & Sports"], ["Reference books", "Books & Study"]].map(([t, c], i) => (
-              <div key={t} className={`overflow-hidden rounded-2xl border border-white/20 shadow-card ${i % 2 ? "translate-y-3" : ""}`}><ProductArt title={t} category={c} className="aspect-square" /></div>
+            {["bosch-drill", "bike-orange", "cradle", "jbl-go", "tent", "toolkit-refurb"].map((n, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <div key={n} className={`overflow-hidden rounded-2xl border border-white/20 bg-white shadow-card ${i % 2 ? "translate-y-3" : ""}`}><img src={`/products/${n}.jpg`} alt="" className="aspect-square w-full object-contain" /></div>
             ))}
           </div>
         </div>

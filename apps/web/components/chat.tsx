@@ -4,17 +4,19 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { BadgeIndianRupee, Check, Lock, Send, X } from "lucide-react";
 import type { Item, Message } from "@relo/core/engine";
 import { useAct, useStore } from "@/lib/store";
-import { dealState, perDay, threadIdOf } from "@/lib/chat";
+import { dealState, money, threadIdOf, type DealKind } from "@/lib/chat";
+import { canSell } from "@relo/core/engine";
 import { Avatar } from "./ui";
 import { ItemThumb } from "./item-bits";
 
 const clock = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
 /** Private conversation between one item's owner and one borrower, with price offers. */
-export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: string; onBack?: () => void }) {
+export function Thread({ item, borrowerId, kind = "rent", onBack }: { item: Item; borrowerId: string; kind?: DealKind; onBack?: () => void }) {
   const { state, me, actions, refresh } = useStore();
   const act = useAct();
-  const threadId = threadIdOf(item.id, borrowerId);
+  const threadId = threadIdOf(item.id, borrowerId, kind);
+  const buy = kind === "buy";
   const msgs = useMemo(() => state.messages.filter((m) => m.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)), [state.messages, threadId]);
   const deal = dealState(msgs);
   const owner = state.users.find((u) => u.id === item.ownerId);
@@ -30,7 +32,8 @@ export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: s
   useEffect(() => { const t = window.setInterval(() => { void refresh(); }, 5000); return () => window.clearInterval(t); }, [refresh]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [msgs.length]);
 
-  const listed = item.pricePerDay ?? 0;
+  const listed = (buy ? item.salePrice : item.pricePerDay) ?? 0;
+  const m$ = (n?: number) => money(n, kind);
   const incoming = deal.pending && deal.pending.fromId !== me.id ? deal.pending : undefined;
   const waiting = deal.pending && deal.pending.fromId === me.id ? deal.pending : undefined;
   const quick = listed > 0 ? [Math.round(listed * 0.9), Math.round(listed * 0.8), Math.round(listed * 0.7)] : [];
@@ -38,8 +41,8 @@ export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: s
   function submit(e: FormEvent) {
     e.preventDefault();
     const r = mode === "offer"
-      ? act(() => actions.sendMessage({ itemId: item.id, borrowerId, kind: "offer", price: Number(price), body: text }))
-      : act(() => actions.sendMessage({ itemId: item.id, borrowerId, kind: "text", body: text }));
+      ? act(() => actions.sendMessage({ itemId: item.id, borrowerId, deal: kind, kind: "offer", price: Number(price), body: text }))
+      : act(() => actions.sendMessage({ itemId: item.id, borrowerId, deal: kind, kind: "text", body: text }));
     if (r.ok) { setText(""); if (mode === "offer") { setPrice(""); setMode("text"); } }
   }
 
@@ -50,34 +53,35 @@ export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: s
         <div className="w-12 shrink-0"><ItemThumb item={item} className="h-12" /></div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-navy">{item.title}</p>
-          <p className="truncate text-xs text-mute">With {other?.name ?? "neighbour"} · Listed {perDay(listed)}</p>
+          <p className="truncate text-xs text-mute">With {other?.name ?? "neighbour"} · {buy ? "For sale" : "Listed"} {m$(listed)}</p>
         </div>
         <span className="hidden items-center gap-1 rounded-full bg-cyan-soft px-2.5 py-1 text-[11px] font-semibold text-navy-700 sm:inline-flex"><Lock className="h-3 w-3" aria-hidden />Private</span>
       </header>
 
       {deal.agreed !== undefined && (
-        <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900"><Check className="h-4 w-4" aria-hidden />Agreed price: {perDay(deal.agreed)}{me.id !== item.ownerId && " · send your request to lock the dates"}</div>
+        <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900"><Check className="h-4 w-4" aria-hidden />Agreed price: {m$(deal.agreed)}{buy ? (item.sold ? " · sold" : me.id === item.ownerId ? "" : " · meet the owner to inspect and pay directly") : me.id !== item.ownerId && " · send your request to lock the dates"}
+          {buy && me.id === item.ownerId && !item.sold && canSell(item) && <button className="btn-primary btn-sm ml-auto" onClick={() => act(() => actions.markSold(item.id, borrowerId, deal.agreed as number))}>Mark as sold</button>}</div>
       )}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto bg-paper/60 p-4" role="log" aria-live="polite" aria-label="Messages">
         {msgs.length === 0 && (
           <p className="mx-auto mt-8 max-w-xs text-center text-sm text-mute">
-            {me.id === item.ownerId ? "No messages yet." : `Say hello to ${owner?.name ?? "the owner"} or propose a price. Only the two of you can see this chat.`}
+            {me.id === item.ownerId ? "No messages yet." : `Say hello to ${owner?.name ?? "the owner"} or ${buy ? "make an offer" : "propose a price"}. Only the two of you can see this chat.`}
           </p>
         )}
-        {msgs.map((m) => <Bubble key={m.id} m={m} mine={m.fromId === me.id} />)}
+        {msgs.map((m) => <Bubble key={m.id} m={m} mine={m.fromId === me.id} kind={kind} />)}
         <div ref={endRef} />
       </div>
 
       {incoming && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-white p-3">
-          <p className="mr-auto text-sm text-ink"><b>{other?.name.split(" ")[0]}</b> offers <b>{perDay(incoming.price)}</b></p>
-          <button className="btn-primary btn-sm" onClick={() => act(() => actions.sendMessage({ itemId: item.id, borrowerId, kind: "accept" }))}><Check className="h-3.5 w-3.5" aria-hidden />Accept</button>
+          <p className="mr-auto text-sm text-ink"><b>{other?.name.split(" ")[0]}</b> offers <b>{m$(incoming.price)}</b></p>
+          <button className="btn-primary btn-sm" onClick={() => act(() => actions.sendMessage({ itemId: item.id, borrowerId, deal: kind, kind: "accept" }))}><Check className="h-3.5 w-3.5" aria-hidden />Accept</button>
           <button className="btn-ghost btn-sm" onClick={() => { setMode("offer"); setPrice(String(Math.round(((incoming.price ?? 0) + listed) / 2))); }}>Counter</button>
-          <button className="btn-danger btn-sm" onClick={() => act(() => actions.sendMessage({ itemId: item.id, borrowerId, kind: "decline" }))}><X className="h-3.5 w-3.5" aria-hidden />Decline</button>
+          <button className="btn-danger btn-sm" onClick={() => act(() => actions.sendMessage({ itemId: item.id, borrowerId, deal: kind, kind: "decline" }))}><X className="h-3.5 w-3.5" aria-hidden />Decline</button>
         </div>
       )}
-      {waiting && !incoming && <p className="border-t border-line bg-white px-4 py-2 text-xs text-mute">Waiting for {other?.name.split(" ")[0]} to answer your offer of {perDay(waiting.price)}.</p>}
+      {waiting && !incoming && <p className="border-t border-line bg-white px-4 py-2 text-xs text-mute">Waiting for {other?.name.split(" ")[0]} to answer your offer of {m$(waiting.price)}.</p>}
 
       <form onSubmit={submit} className="space-y-2 border-t border-line bg-white p-3">
         <div className="flex items-center gap-2 text-xs font-semibold">
@@ -87,9 +91,9 @@ export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: s
         </div>
         <div className="flex items-end gap-2">
           {mode === "offer" && (
-            <label className="w-28 shrink-0"><span className="sr-only">Price per day in rupees</span>
+            <label className="w-28 shrink-0"><span className="sr-only">{buy ? "Price in rupees" : "Price per day in rupees"}</span>
               <div className="flex items-center rounded-xl border border-line bg-white pl-3 focus-within:ring-2 focus-within:ring-cyan/40"><span className="text-sm text-mute">₹</span>
-                <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))} placeholder="/day" className="w-full bg-transparent px-2 py-2.5 text-sm text-ink focus:outline-none" /></div>
+                <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))} placeholder={buy ? "total" : "/day"} className="w-full bg-transparent px-2 py-2.5 text-sm text-ink focus:outline-none" /></div>
             </label>
           )}
           <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder={mode === "offer" ? "Add a note (optional)" : "Write a message…"}
@@ -102,7 +106,8 @@ export function Thread({ item, borrowerId, onBack }: { item: Item; borrowerId: s
   );
 }
 
-function Bubble({ m, mine }: { m: Message; mine: boolean }) {
+function Bubble({ m, mine, kind }: { m: Message; mine: boolean; kind: DealKind }) {
+  const perDay = (n?: number) => money(n, kind);
   if (m.kind === "accept" || m.kind === "decline") {
     return <p className="mx-auto w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-mute shadow-card">{mine ? "You" : "They"} {m.kind === "accept" ? `accepted ${perDay(m.price)}` : "declined the offer"} · {clock(m.createdAt)}</p>;
   }

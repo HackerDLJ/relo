@@ -1,7 +1,10 @@
 import type { Message } from "@relo/core/engine";
 
-export const threadIdOf = (itemId: string, borrowerId: string) => `${itemId}:${borrowerId}`;
-export const parseThread = (t: string) => { const [itemId, borrowerId] = t.split(":"); return { itemId, borrowerId }; };
+/** "rent" chats negotiate a per-day rate; "buy" chats negotiate the sale price. Buy threads end in ":buy". */
+export type DealKind = "rent" | "buy";
+export const threadIdOf = (itemId: string, borrowerId: string, kind: DealKind = "rent") => `${itemId}:${borrowerId}${kind === "buy" ? ":buy" : ""}`;
+export const parseThread = (t: string) => { const [itemId, borrowerId, k] = t.split(":"); return { itemId, borrowerId, kind: (k === "buy" ? "buy" : "rent") as DealKind }; };
+export const money = (n: number | undefined, kind: DealKind) => (kind === "buy" ? `₹${Math.round(n ?? 0).toLocaleString("en-IN")}` : perDay(n));
 
 export type DealState = {
   /** Price both sides accepted, per day. */

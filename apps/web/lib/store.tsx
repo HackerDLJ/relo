@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   addDays,
+  canRent,
+  canSell,
   daysBetween,
   findConflict,
   isFullyAvailable,
@@ -17,13 +19,15 @@ import {
   type BorrowRequest,
   type Condition,
   type Item,
+  type ListingMode,
   type Message,
   type Need,
+  type Refurb,
   type Settings,
   type Urgency,
 } from "@relo/core/engine";
 import { createSeed, realToday, STATE_VERSION, type AppState } from "./seed";
-import { dealState, perDay, threadIdOf } from "./chat";
+import { dealState, money, perDay, threadIdOf, type DealKind } from "./chat";
 import { createProfile as saveProfile, emptyState, loadRemote, persistDiff, remoteEnabled, sb } from "./remote";
 import { AREA_COORDS } from "./areas";
 import { useToast } from "@/components/toast";
@@ -142,11 +146,12 @@ async function providerEnabled(name: "google" | "phone"): Promise<boolean | unde
 export type NewItemInput = {
   title: string; description: string; category: string; condition: Condition; areaLabel: string;
   availableFrom: string; availableUntil: string; requirements: string[]; estValue: number; pricePerDay?: number; photo?: string;
+  mode?: ListingMode; salePrice?: number; refurb?: Refurb;
 };
 export type NewRequestInput = {
   itemId: string; from: string; until: string; purpose: string; urgency: Urgency; agreed: string[]; waitlistIfBooked?: boolean; needId?: string;
 };
-export type NewMessageInput = { itemId: string; borrowerId: string; kind: "text" | "offer" | "accept" | "decline"; body?: string; price?: number };
+export type NewMessageInput = { itemId: string; borrowerId: string; deal?: DealKind; kind: "text" | "offer" | "accept" | "decline"; body?: string; price?: number };
 export type NewNeedInput = {
   title: string; category: string; from: string; until: string; radiusKm: number; details: string; urgency: Urgency;
 };
@@ -171,6 +176,7 @@ type Actions = {
   acceptOffer(offerId: string): Result;
   markRead(id?: string): void;
   sendMessage(i: NewMessageInput): Result;
+  markSold(itemId: string, buyerId: string, price: number): Result;
   markThreadRead(threadId: string): void;
   updateSettings(p: Partial<Settings>): Result;
   advanceDays(n: number): Result;
@@ -378,6 +384,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!item) return fail("That item no longer exists.");
       if (item.id.startsWith("s-")) return fail("This is a sample listing so you can see how RELO looks. Request something from a real neighbour, or list your own item.");
       if (item.ownerId === user.id) return fail("You can't borrow your own item.");
+      if (!canRent(item)) return fail("This item is for sale only, not for lending. Message the owner to make an offer.");
+      if (item.sold) return fail("This item has been sold.");
       if (isSuspended(s, user.id)) return fail("Borrowing is suspended until your overdue item is returned.");
       const today = todayOf(s);
       if (i.purpose.trim().length < 5) return fail("Tell the owner briefly what you'll use it for (at least 5 characters).");
@@ -396,7 +404,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const r: BorrowRequest = {
         id: uid("r"), itemId: item.id, borrowerId: user.id, from: i.from, until: i.until, originalUntil: i.until,
         purpose: i.purpose.trim(), urgency: i.urgency, agreedRequirements: i.agreed, submittedAt: nowIso(), status, needId: i.needId,
-        pricePerDay: dealState(s.messages.filter((m) => m.threadId === threadIdOf(item.id, user.id))).agreed ?? item.pricePerDay ?? 0,
+        pricePerDay: dealState(s.messages.filter((m) => m.threadId === threadIdOf(item.id, user.id, "rent"))).agreed ?? item.pricePerDay ?? 0,
       };
       s = { ...s, requests: [r, ...s.requests] };
       s = notify(s, item.ownerId, "request", status === "waitlisted" ? "New waitlisted request" : "New borrowing request",
@@ -691,8 +699,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const borrowerId = isOwner ? i.borrowerId : meId;
         if (!isOwner && i.borrowerId !== meId) return fail("You can only message the owner about this item.");
         if (borrowerId === item.ownerId) return fail("You can't message yourself.");
-        const threadId = threadIdOf(item.id, borrowerId);
+        const deal: DealKind = i.deal === "buy" ? "buy" : "rent";
+        if (deal === "buy" && !canSell(item)) return fail(item.sold ? "This item has already been sold." : "This item isn't for sale.");
+        if (deal === "rent" && !canRent(item)) return fail("This item is only for sale. Make an offer to buy it.");
+        const threadId = threadIdOf(item.id, borrowerId, deal);
         const thread = s.messages.filter((m) => m.threadId === threadId);
+        const $ = (n?: number) => money(n, deal);
         const toId = isOwner ? borrowerId : item.ownerId;
         const body = (i.body ?? "").trim();
         let price: number | undefined;
@@ -700,7 +712,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (!body) return fail("Type a message first.");
           if (body.length > 1000) return fail("Keep messages under 1,000 characters.");
         } else if (i.kind === "offer") {
-          if (!Number.isFinite(i.price) || (i.price as number) < 0 || (i.price as number) > 100000) return fail("Enter a price between ₹0 and ₹1,00,000 per day.");
+          const cap = deal === "buy" ? 1000000 : 100000;
+          if (!Number.isFinite(i.price) || (i.price as number) < (deal === "buy" ? 1 : 0) || (i.price as number) > cap) return fail(deal === "buy" ? "Enter an offer between ₹1 and ₹10,00,000." : "Enter a price between ₹0 and ₹1,00,000 per day.");
           price = Math.round(i.price as number);
           if (body.length > 1000) return fail("Keep messages under 1,000 characters.");
         } else {
@@ -709,11 +722,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           price = pending.price;
         }
         const msg: Message = { id: uid("m"), threadId, itemId: item.id, fromId: meId, toId, kind: i.kind, body, price, createdAt: nowIso() };
-        const label = i.kind === "offer" ? `proposed ${perDay(price)} for ${item.title}` : i.kind === "accept" ? `accepted ${perDay(price)} for ${item.title}` : i.kind === "decline" ? `declined the price offer for ${item.title}` : `sent you a message about ${item.title}`;
+        const label = i.kind === "offer" ? `proposed ${$(price)} for ${item.title}` : i.kind === "accept" ? `accepted ${$(price)} for ${item.title}` : i.kind === "decline" ? `declined the price offer for ${item.title}` : `sent you a message about ${item.title}`;
         let next: AppState = { ...s, messages: [...s.messages, msg] };
         next = notify(next, toId, "offer", `${me().name} ${label.split(" for ")[0]}`, body ? `“${body.slice(0, 140)}”` : `Open Messages to reply about ${item.title}.`);
         commit(next);
-        return ok(i.kind === "offer" ? `Offer of ${perDay(price)} sent.` : i.kind === "accept" ? `Deal agreed at ${perDay(price)}. Send your request to lock the dates.` : i.kind === "decline" ? "Offer declined." : "Message sent.", msg.id);
+        return ok(i.kind === "offer" ? `Offer of ${$(price)} sent.` : i.kind === "accept" ? (deal === "buy" ? `Deal agreed at ${$(price)}. Arrange a time to inspect the item and pay the owner directly.` : `Deal agreed at ${$(price)}. Send your request to lock the dates.`) : i.kind === "decline" ? "Offer declined." : "Message sent.", msg.id);
+      },
+
+      markSold(itemId, buyerId, price) {
+        const s = get();
+        const item = s.items.find((x) => x.id === itemId);
+        if (!item) return fail("That item no longer exists.");
+        if (item.ownerId !== me().id) return fail("Only the owner can record a sale.");
+        if (!canSell(item)) return fail(item.sold ? "This item is already marked as sold." : "This item isn't listed for sale.");
+        if (s.requests.some((r) => r.itemId === itemId && (r.status === "approved" || r.status === "active"))) return fail("This item has an approved or active loan. Finish it before recording a sale.");
+        const deal = dealState(s.messages.filter((m) => m.threadId === threadIdOf(itemId, buyerId, "buy"))).agreed;
+        if (deal === undefined || deal !== price) return fail("Accept an offer in the chat first, then record the sale at that price.");
+        let next: AppState = { ...s, items: s.items.map((x) => (x.id === itemId ? { ...x, active: false, sold: { to: buyerId, price, at: nowIso() } } : x)) };
+        next = { ...next, requests: next.requests.map((r) => (r.itemId === itemId && (r.status === "pending" || r.status === "waitlisted") ? { ...r, status: "declined" as const, declineReason: "The item was sold.", decidedAt: nowIso() } : r)) };
+        next = notify(next, buyerId, "offer", `${me().name} marked ${item.title} as sold to you`, `Agreed price ${money(price, "buy")}. Payment and handover happen directly between you.`);
+        commit(next);
+        return ok(`Sale recorded at ${money(price, "buy")}. The listing is now closed.`);
       },
 
       markThreadRead(threadId) {
@@ -803,7 +832,14 @@ function validateItem(i: NewItemInput, today: string, partial = false): string |
   if (i.availableUntil < i.availableFrom) return "The availability end date can't be before the start date.";
   if (!partial && i.availableUntil < today) return "The availability window has already ended.";
   if (!(i.estValue >= 100 && i.estValue <= 500000)) return "Enter an approximate replacement value between ₹100 and ₹5,00,000 (used only for impact estimates).";
-  if (i.pricePerDay !== undefined && !(i.pricePerDay >= 0 && i.pricePerDay <= 100000)) return "Price per day must be between ₹0 and ₹1,00,000.";
+  const mode = i.mode ?? "rent";
+  if (mode !== "sell" && i.pricePerDay !== undefined && !(i.pricePerDay >= 0 && i.pricePerDay <= 100000)) return "Price per day must be between ₹0 and ₹1,00,000.";
+  if (mode !== "rent" && !(Number(i.salePrice) >= 1 && Number(i.salePrice) <= 1000000)) return "Enter a sale price between ₹1 and ₹10,00,000.";
+  if (i.refurb) {
+    if (!["A", "B", "C"].includes(i.refurb.grade)) return "Choose a refurbished grade.";
+    if (!(i.refurb.warrantyMonths >= 0 && i.refurb.warrantyMonths <= 24)) return "Warranty must be between 0 and 24 months.";
+    if (!i.refurb.work || i.refurb.work.trim().length < 5) return "Say briefly what was repaired or replaced.";
+  }
   return null;
 }
 

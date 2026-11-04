@@ -14,6 +14,7 @@ import {
   type User,
 } from "@relo/core/engine";
 import { AREA_COORDS } from "./areas";
+import { PHOTO_BY_TITLE, SALE_LISTINGS } from "./catalog";
 
 export type AppState = {
   version: number;
@@ -32,7 +33,7 @@ export type AppState = {
   seededOn: string;
 };
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 export function realToday(): string {
   const d = new Date();
@@ -80,10 +81,10 @@ export function createSeed(): AppState {
     item("u2", "Mountain bicycle (21-speed)", "Outdoor & Sports", "Good", 14000, "Medium frame, recently serviced. Helmet available on request.", ["Helmet recommended", "Return cleaned"], "Palayamkottai"),
     item("u2", "8 ft extension ladder", "Tools", "Fair", 5500, "Lightweight aluminium ladder, extends to 8 ft. Painting and tube-light jobs.", ["Pickup only", "Return cleaned"], "Palayamkottai"),
     item("u3", "DSLR camera kit", "Electronics", "Like new", 38000, "DSLR body, 18-55mm lens, 2 batteries, 64GB card and bag.", ["ID shown at pickup", "Return charged"], "Thachanallur"),
-    item("u3", "4-person camping tent", "Outdoor & Sports", "Good", 6500, "Waterproof dome tent with rainfly and pegs. Pitches in 10 minutes.", ["Return dry and cleaned"], "Thachanallur"),
+    item("u3", "Tunnel camping tent (2-3 person)", "Outdoor & Sports", "Good", 6500, "Waterproof tunnel tent with flysheet and pegs. Pitches in 10 minutes.", ["Return dry and cleaned"], "Thachanallur"),
     item("u4", "Engineering mathematics reference set", "Books & Study", "Good", 2400, "Three-volume set with solved problems. Light pencil notes only.", ["No highlighting"], "Vannarpettai"),
     item("u4", "Folding study table", "Furniture & Home", "Good", 3200, "Foldable laptop and study table, adjustable height.", ["Pickup only"], "Vannarpettai"),
-    item("u5", "Portable PA speaker with mic", "Party & Events", "Good", 9000, "Rechargeable 100W PA speaker with wireless microphone. Suits small events and classes.", ["Return charged", "ID shown at pickup"], "Melapalayam"),
+    item("u5", "Portable party speaker with lights", "Party & Events", "Good", 9000, "Rechargeable party speaker with RGB lights, phone stand and wireless microphone. Suits small events and classes.", ["Return charged", "ID shown at pickup"], "Melapalayam"),
     item("u5", "Garden sprayer pump (16L)", "Garden", "Fair", 2200, "Manual 16L backpack sprayer.", ["Return cleaned"], "Melapalayam"),
     item("u6", "Baby stroller", "Baby & Kids", "Good", 7000, "Foldable stroller with rain cover, cleaned and sanitised between loans.", ["Return cleaned"], "Perumalpuram"),
     item("u6", "28-inch travel suitcase", "Travel", "Good", 4200, "Hard-shell trolley suitcase with TSA lock.", ["Return cleaned"], "Perumalpuram"),
@@ -92,13 +93,24 @@ export function createSeed(): AppState {
     item("u4", "40-piece hand tool kit", "Tools", "Good", 3000, "Spanners, screwdrivers, pliers, hammer and level in a case.", ["Return complete"], "Vannarpettai"),
     item("u3", "Mini projector (720p)", "Electronics", "Good", 9000, "Compact projector, good for small rooms and demos.", ["Return charged"], "Thachanallur"),
   ];
-  const PRICES: [string, number][] = [["Cordless", 80], ["7L", 0], ["Mountain", 150], ["8 ft", 100], ["DSLR", 600], ["4-person", 200], ["Engineering", 0], ["Folding", 0], ["Portable PA", 400], ["Garden", 0], ["Baby", 120], ["28-inch", 100], ["1080p", 500], ["Impact", 60], ["40-piece", 0], ["Mini", 250]];
+  const PRICES: [string, number][] = [["Cordless", 80], ["7L", 0], ["Mountain", 150], ["8 ft", 100], ["DSLR", 600], ["Tunnel", 200], ["Engineering", 0], ["Folding", 0], ["Portable party", 400], ["Garden", 0], ["Baby", 120], ["28-inch", 100], ["1080p", 500], ["Impact", 60], ["40-piece", 0], ["Mini", 250]];
   for (const it of items) it.pricePerDay = PRICES.find(([k]) => it.title.startsWith(k))?.[1] ?? 0;
+  for (const it of items) it.photo = PHOTO_BY_TITLE.find(([k]) => it.title.startsWith(k))?.[1];
+  const sellers = ["u1", "u2", "u3", "u4", "u5", "u6"];
+  SALE_LISTINGS.forEach((l, k) => {
+    const o = users.find((u) => u.id === sellers[k % sellers.length])!;
+    n++;
+    items.push({
+      id: `i${n}`, ownerId: o.id, title: l.title, description: l.description, category: l.category, condition: l.condition, areaLabel: o.area,
+      lat: o.lat + (n % 5) * 0.0011, lon: o.lon - (n % 5) * 0.0011, availableFrom: d(-60), availableUntil: d(180), requirements: l.requirements, active: true, estValue: l.estValue,
+      createdAt: ts(d(-30 + k)), mode: l.mode, pricePerDay: l.pricePerDay ?? 0, salePrice: l.salePrice, refurb: l.refurb, photo: l.photo,
+    });
+  });
   const itemId = (title: string) => items.find((i) => i.title.startsWith(title))!.id;
   const I = {
     drill: itemId("Cordless drill"), cooker: itemId("7L"), bike: itemId("Mountain"), ladder: itemId("8 ft"),
-    camera: itemId("DSLR"), tent: itemId("4-person"), books: itemId("Engineering"), table: itemId("Folding"),
-    pa: itemId("Portable PA"), sprayer: itemId("Garden"), stroller: itemId("Baby"), suitcase: itemId("28-inch"),
+    camera: itemId("DSLR"), tent: itemId("Tunnel"), books: itemId("Engineering"), table: itemId("Folding"),
+    pa: itemId("Portable party"), sprayer: itemId("Garden"), stroller: itemId("Baby"), suitcase: itemId("28-inch"),
     proj: itemId("1080p"), impact: itemId("Impact"), kit: itemId("40-piece"), mini: itemId("Mini"),
   };
   const owner = (id: string) => items.find((i) => i.id === id)!.ownerId;

@@ -59,6 +59,16 @@ export type User = {
   demo?: boolean;
 };
 
+/** How an item is offered: lent for a daily price (or free), sold, or both. */
+export type ListingMode = "rent" | "sell" | "both";
+export const LISTING_MODES: ListingMode[] = ["rent", "sell", "both"];
+/** A = like new after refurbishing, B = fully working with light wear, C = fully working, visible wear. */
+export type RefurbGrade = "A" | "B" | "C";
+export type Refurb = { grade: RefurbGrade; warrantyMonths: number; work: string };
+
+export const canRent = (i: { mode?: ListingMode }) => (i.mode ?? "rent") !== "sell";
+export const canSell = (i: { mode?: ListingMode; sold?: unknown }) => (i.mode ?? "rent") !== "rent" && !i.sold;
+
 export type Item = {
   id: string;
   ownerId: string;
@@ -79,6 +89,14 @@ export type Item = {
   estValue: number;
   /** Rental asking price in INR per day. 0 or missing means free to borrow. Negotiable in private messages. */
   pricePerDay?: number;
+  /** Defaults to "rent" when missing so older listings keep working. */
+  mode?: ListingMode;
+  /** Asking price in INR when the item is for sale. Negotiable in private messages. */
+  salePrice?: number;
+  /** Present when the item was repaired or restored before being offered again. */
+  refurb?: Refurb;
+  /** Set when the owner records a completed sale. Sold items leave Discover. */
+  sold?: { to: string; price: number; at: string };
   createdAt: string;
 };
 

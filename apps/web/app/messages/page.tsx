@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { parseThread, perDay, dealState } from "@/lib/chat";
+import { parseThread, money, dealState } from "@/lib/chat";
 import { Thread, ThreadAvatar } from "@/components/chat";
 import { EmptyState, PageHeader, ago } from "@/components/ui";
 
@@ -18,10 +18,10 @@ export default function MessagesPage() {
     const ids = new Set(state.messages.filter((m) => m.fromId === me.id || m.toId === me.id).map((m) => m.threadId));
     if (sel) ids.add(sel);
     return [...ids].map((id) => {
-      const { itemId, borrowerId } = parseThread(id);
+      const { itemId, borrowerId, kind } = parseThread(id);
       const item = state.items.find((i) => i.id === itemId);
       const msgs = state.messages.filter((m) => m.threadId === id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      return { id, item, borrowerId, msgs, last: msgs[msgs.length - 1], unread: msgs.filter((m) => m.toId === me.id && !m.readAt).length };
+      return { id, item, borrowerId, kind, msgs, last: msgs[msgs.length - 1], unread: msgs.filter((m) => m.toId === me.id && !m.readAt).length };
     }).filter((t) => t.item && (t.item.ownerId === me.id || t.borrowerId === me.id))
       .sort((a, b) => (b.last?.createdAt ?? "9").localeCompare(a.last?.createdAt ?? "9"));
   }, [state.messages, state.items, me.id, sel]);
@@ -45,8 +45,8 @@ export default function MessagesPage() {
                     <ThreadAvatar name={nameOf(t)} />
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-2 text-sm font-semibold text-navy"><span className="truncate">{nameOf(t)}</span>{t.unread > 0 && <span className="rounded-full bg-cyan px-1.5 text-[11px] font-bold text-navy">{t.unread}</span>}</p>
-                      <p className="truncate text-xs text-mute">{t.item!.title}{d.agreed !== undefined ? ` · agreed ${perDay(d.agreed)}` : ""}</p>
-                      <p className="truncate text-xs text-mute">{t.last ? `${t.last.fromId === me.id ? "You: " : ""}${t.last.kind === "offer" ? `Offer ${perDay(t.last.price)}` : t.last.kind === "accept" ? "Offer accepted" : t.last.kind === "decline" ? "Offer declined" : t.last.body}` : "New conversation"}</p>
+                      <p className="truncate text-xs text-mute">{t.kind === "buy" ? "Buying: " : ""}{t.item!.title}{d.agreed !== undefined ? ` · agreed ${money(d.agreed, t.kind)}` : ""}</p>
+                      <p className="truncate text-xs text-mute">{t.last ? `${t.last.fromId === me.id ? "You: " : ""}${t.last.kind === "offer" ? `Offer ${money(t.last.price, t.kind)}` : t.last.kind === "accept" ? "Offer accepted" : t.last.kind === "decline" ? "Offer declined" : t.last.body}` : "New conversation"}</p>
                     </div>
                     {t.last && <span className="shrink-0 text-[11px] text-mute">{ago(t.last.createdAt)}</span>}
                   </button>
@@ -55,7 +55,7 @@ export default function MessagesPage() {
             })}
           </ul>
           <div className={current ? "" : "hidden md:block"}>
-            {current?.item ? <Thread key={current.id} item={current.item} borrowerId={current.borrowerId} onBack={() => setSel(null)} /> : (
+            {current?.item ? <Thread key={current.id} item={current.item} borrowerId={current.borrowerId} kind={current.kind} onBack={() => setSel(null)} /> : (
               <div className="card hidden h-72 place-items-center text-center text-sm text-mute md:grid"><div><MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden />Select a conversation</div></div>
             )}
           </div>

@@ -6,7 +6,7 @@ import { LOCKING, type Item } from "@relo/core/engine";
 import { useAct, useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
 import { Badge, Confirm, EmptyState, PageHeader, fmtRange } from "@/components/ui";
-import { ItemThumb, STATUS_LABEL, STATUS_TONE } from "@/components/item-bits";
+import { ItemThumb, PriceTags, RefurbBadge, STATUS_LABEL, STATUS_TONE } from "@/components/item-bits";
 import { ListingForm } from "@/components/forms";
 import { OwnerQueue } from "@/components/owner-queue";
 
@@ -34,12 +34,12 @@ export default function ListingsPage() {
               <div className="flex gap-4">
                 <div className="w-24 shrink-0 sm:w-32"><ItemThumb item={item} className="h-24 sm:h-28" /></div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold text-navy">{item.title}</h2>{item.active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Paused</Badge>}</div>
-                  <p className="mt-0.5 text-xs text-mute">{item.category} · {item.condition} · {item.areaLabel} · shared {fmtRange(item.availableFrom, item.availableUntil)} · {history} past loan{history === 1 ? "" : "s"}</p>
+                  <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold text-navy">{item.title}</h2>{item.sold ? <Badge tone="red">Sold</Badge> : item.active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Paused</Badge>}{item.refurb && <RefurbBadge item={item} />}<span className="ml-auto"><PriceTags item={item} /></span></div>
+                  <p className="mt-0.5 text-xs text-mute">{item.category} · {item.condition} · {item.areaLabel} · {item.sold ? `sold for ₹${item.sold.price.toLocaleString("en-IN")}` : (item.mode ?? "rent") === "sell" ? "for sale" : `shared ${fmtRange(item.availableFrom, item.availableUntil)} · ${history} past loan${history === 1 ? "" : "s"}`}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-mute">{item.description}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button className="btn-ghost btn-sm" onClick={() => { setEditing(item); setForm(true); }}><Pencil className="h-3.5 w-3.5" aria-hidden />Edit</button>
-                    {item.active ? <button className="btn-ghost btn-sm" onClick={() => setPause(item)}><Pause className="h-3.5 w-3.5" aria-hidden />Pause listing</button> : <button className="btn-accent btn-sm" onClick={() => act(() => actions.toggleItem(item.id))}><Play className="h-3.5 w-3.5" aria-hidden />Reactivate</button>}
+                    {item.sold ? null : item.active ? <button className="btn-ghost btn-sm" onClick={() => setPause(item)}><Pause className="h-3.5 w-3.5" aria-hidden />Pause listing</button> : <button className="btn-accent btn-sm" onClick={() => act(() => actions.toggleItem(item.id))}><Play className="h-3.5 w-3.5" aria-hidden />Reactivate</button>}
                   </div>
                 </div>
               </div>

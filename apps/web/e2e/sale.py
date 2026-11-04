@@ -1,0 +1,56 @@
+"""Selling and refurbished flow in local demo mode: filter, detail, buy offer, accept, mark sold."""
+from playwright.sync_api import sync_playwright
+BASE = "http://localhost:3100"
+ok = fail = 0
+def check(name, cond, extra=""):
+    global ok, fail
+    print(("PASS " if cond else "FAIL ") + name + (f" | {extra}" if extra else ""))
+    ok += cond; fail += (not cond)
+
+with sync_playwright() as p:
+    b = p.chromium.launch(executable_path="/usr/bin/google-chrome")
+    pg = b.new_page(viewport={"width": 1280, "height": 900}); errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
+    def switch(n): pg.select_option('select[aria-label="Switch demo account"]', label=n)
+    pg.goto(BASE + "/"); pg.wait_for_selector("h1"); switch("Lakshmi Priya")
+    pg.goto(BASE + "/discover?kind=refurb"); pg.wait_for_selector("li.card, a.card")
+    cards = pg.locator("a.card")
+    n = cards.count()
+    check("refurbished filter lists only refurbished items", n > 5 and cards.filter(has_text="Refurbished").count() == n, f"{n} cards")
+    check("sale price shown on cards", pg.locator("text=Buy ₹450").count() == 1)
+    check("images are real photos", pg.locator('a.card img[src^="/products/"]').count() == n)
+    pg.goto(BASE + "/discover?kind=buy"); pg.wait_for_selector("a.card")
+    check("buy filter hides rent-only items", pg.locator("text=Cordless drill").count() == 0)
+    pg.goto(BASE + "/discover?kind=rent"); pg.wait_for_selector("a.card")
+    check("rent filter hides sell-only items", pg.locator("text=Refurbished precision screwdriver").count() == 0)
+    pg.goto(BASE + "/discover?kind=refurb"); pg.wait_for_selector("a.card")
+    pg.locator("a.card", has_text="precision screwdriver kit").first.click(); pg.wait_for_selector("text=What was done")
+    check("detail shows grade and warranty", pg.locator("text=Grade A").count() > 0 and pg.locator("text=3 months from the seller").count() == 1)
+    check("sell-only item cannot be requested", pg.locator("text=Request to borrow").count() == 0)
+    pg.click("text=Make an offer to buy"); pg.wait_for_selector('textarea[aria-label="Message"]')
+    pg.click("text=Price offer"); pg.fill('input[inputmode="numeric"]', "400"); pg.fill('textarea[aria-label="Message"]', "Can pick up today"); pg.click('button[aria-label="Send offer"]')
+    pg.wait_for_selector("text=Offer ₹400")
+    check("buy offer shows a total price, not per day", pg.locator("text=/day").count() == 0)
+    switch("Meera Iyer"); pg.goto(BASE + "/messages"); pg.wait_for_selector('ul[aria-label="Conversations"] button')
+    pg.click('ul[aria-label="Conversations"] button'); pg.wait_for_selector("text=offers ₹400")
+    check("owner sees a buying conversation", pg.locator("text=Buying:").count() > 0)
+    pg.click("text=Accept"); pg.wait_for_selector("text=Agreed price: ₹400")
+    pg.click("text=Mark as sold"); pg.wait_for_selector("text=Agreed price: ₹400 · sold")
+    check("sale recorded", pg.locator("text=Mark as sold").count() == 0)
+    pg.goto(BASE + "/listings"); pg.wait_for_selector("h1")
+    check("listing shows Sold", pg.locator("text=sold for ₹400").count() == 1)
+    switch("Lakshmi Priya"); pg.goto(BASE + "/discover?kind=refurb"); pg.wait_for_selector("a.card")
+    check("sold item leaves Discover", pg.locator("text=Refurbished precision screwdriver").count() == 0)
+    # listing form
+    switch("Meera Iyer"); pg.goto(BASE + "/listings"); pg.click("text=List an item"); pg.wait_for_selector("text=What do you want to do with it?")
+    pg.click('button[role="radio"]:has-text("Sell")')
+    check("sell mode hides per-day price and shows sale price", pg.locator("text=Price per day").count() == 0 and pg.locator("text=Sale price").count() == 1)
+    pg.fill('input[placeholder^="e.g. Cordless"]', "Old study lamp"); pg.select_option("[role=dialog] select >> nth=0", label="Furniture & Home")
+    pg.fill("textarea", "Works fine, new bulb fitted."); pg.fill('input[placeholder="e.g. 4500"] >> nth=0', "300")
+    pg.click("text=This item was repaired or refurbished"); pg.fill('input[placeholder^="e.g. New battery"]', "New wiring and switch")
+    pg.fill('input[placeholder="e.g. 4500"] >> nth=1', "250"); pg.click("text=Publish item")
+    pg.wait_for_selector("text=Old study lamp")
+    check("new refurbished sale listing appears", pg.locator("text=Old study lamp").count() > 0, pg.locator("[role=alert]").first.inner_text() if pg.locator("[role=alert]").count() else "")
+    check("no console errors", not errs, "; ".join(errs[:2]))
+    b.close()
+print(f"{ok} passed, {fail} failed"); raise SystemExit(1 if fail else 0)

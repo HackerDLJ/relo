@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS,
   estimateImpact,
+  canRent,
+  canSell,
   findAlternatives,
   findConflict,
   latePenalty,
@@ -181,5 +183,20 @@ describe("impact estimates", () => {
     expect(imp.moneySavedInr).toBe(3000);
     expect(imp.estimated).toBe(true);
     expect(imp.co2AvoidedKg).toBeGreaterThan(0);
+  });
+});
+
+describe("listing modes", () => {
+  it("treats items without a mode as rent-only so old listings keep working", () => {
+    expect(canRent(item())).toBe(true);
+    expect(canSell(item())).toBe(false);
+  });
+  it("lets sell-only items be bought but not borrowed, and both modes do either", () => {
+    expect(canRent(item({ mode: "sell" }))).toBe(false);
+    expect(canSell(item({ mode: "sell" }))).toBe(true);
+    expect(canRent(item({ mode: "both" })) && canSell(item({ mode: "both" }))).toBe(true);
+  });
+  it("stops offering an item for sale once it is sold", () => {
+    expect(canSell(item({ mode: "both", sold: { to: "u2", price: 900, at: "2026-11-04T00:00:00Z" } }))).toBe(false);
   });
 });
