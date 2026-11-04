@@ -44,6 +44,14 @@ moderation are simulated. **There is no server-side persistence yet.** The Supab
 
 See `docs/ALGORITHM.md`, `docs/EDGE_CASES.md` and `docs/TESTING.md`.
 
+## Deploying to Vercel
+
+The prototype needs no environment variables or backend.
+1. Import `HackerDLJ/relo` in Vercel.
+2. **Recommended:** set *Root Directory* to `apps/web` (standard monorepo setup, installs from the workspace root).
+   Alternative: leave Root Directory empty; the root `vercel.json` installs only the web workspace and builds `@relo/web`.
+3. Deploy. Production builds were rehearsed from a clean checkout (`pnpm install --frozen-lockfile --filter @relo/web...`, then `pnpm --filter @relo/web build`).
+
 ## Scripts
 
 - `pnpm dev:web` - start the web app

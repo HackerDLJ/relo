@@ -7,9 +7,14 @@
     "dev:web": "pnpm --filter @relo/web dev",
     "dev:mobile": "pnpm --filter @relo/mobile start",
     "test": "pnpm --filter @relo/core test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "build:web": "pnpm --filter @relo/web build"
   },
   "devDependencies": {
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "next": "15.1.6"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
