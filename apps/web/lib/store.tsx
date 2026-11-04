@@ -123,6 +123,18 @@ export function isSuspended(s: AppState, userId: string): boolean {
   return s.requests.some((r) => r.borrowerId === userId && r.status === "active" && overdueStatus(r, today, s.settings).stage === "suspended");
 }
 
+/** Asks Supabase which sign-in methods are on. Returns undefined if it can't tell. */
+async function providerEnabled(name: "google" | "phone"): Promise<boolean | undefined> {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" } });
+    if (!res.ok) return undefined;
+    const j = (await res.json()) as { external?: Record<string, boolean> };
+    return Boolean(j.external?.[name]);
+  } catch {
+    return undefined;
+  }
+}
+
 /* ------------------------------------------------------------- context */
 
 export type NewItemInput = {
@@ -329,11 +341,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch (err) { return (err as Error).message; }
     },
     async signInGoogle() {
+      const on = await providerEnabled("google");
+      if (on === false) return "Google sign-in isn't switched on for this project yet. Use email for now.";
       const { error } = await sb().auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
       if (!error) return null;
       return /not enabled|Unsupported provider/i.test(error.message) ? "Google sign-in isn't switched on for this project yet." : error.message;
     },
     async sendPhoneCode(phone) {
+      if ((await providerEnabled("phone")) === false) return "Phone sign-in isn't switched on for this project yet. Use email for now.";
       const { error } = await sb().auth.signInWithOtp({ phone });
       if (!error) return null;
       return /provider|sms|twilio|not enabled|Unsupported/i.test(error.message) ? "Phone sign-in isn't switched on for this project yet." : error.message;
