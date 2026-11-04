@@ -1,72 +1,25 @@
-const categories = ["Electronics", "Books", "Tools", "Sports", "Furniture", "Travel"];
-
-const sampleItems = [
-  { name: "Mountain Bicycle", category: "Sports", distance: "0.8 km away", owner: "Arun", tag: "High match", score: "96%" },
-  { name: "Cordless Drill", category: "Tools", distance: "1.4 km away", owner: "Meera", tag: "Good match", score: "91%" },
-  { name: "Physics Reference Set", category: "Books", distance: "2.1 km away", owner: "Kavin", tag: "Good match", score: "88%" },
-];
-
-export default function Home() {
-  return (
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 64 }}>
-        <strong style={{ fontSize: 28, letterSpacing: "-1.5px", color: "#176b46" }}>relo<span style={{ color: "#a2bd45" }}>.</span></strong>
-        <div style={{ display: "flex", gap: 24, alignItems: "center", fontSize: 14 }}>
-          <a href="#discover">Discover</a><a href="#how">How it works</a>
-          <button style={{ background: "#176b46", color: "white", border: 0, padding: "12px 18px", borderRadius: 999 }}>Join RELO</button>
-        </div>
-      </nav>
-
-      <section style={{ display: "grid", gridTemplateColumns: "1.2fr .8fr", gap: 48, alignItems: "center", marginBottom: 72 }}>
-        <div>
-          <p style={{ color: "#397a58", fontWeight: 700, letterSpacing: 2, fontSize: 12 }}>THE COMMUNITY SHARING NETWORK</p>
-          <h1 style={{ fontSize: "clamp(44px, 7vw, 76px)", lineHeight: .98, letterSpacing: "-4px", margin: "18px 0" }}>
-            Own less.<br/><span style={{ color: "#39865b" }}>Experience</span> more.
-          </h1>
-          <p style={{ color: "#64736a", fontSize: 18, lineHeight: 1.7, maxWidth: 520 }}>
-            The things sitting unused in one home could be exactly what someone nearby needs. Give good resources another life.
-          </p>
-          <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-            <a href="#discover" style={{ background: "#176b46", color: "white", padding: "15px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 700 }}>Explore resources ↗</a>
-            <a href="#how" style={{ border: "1px solid #cbd7ce", padding: "15px 22px", borderRadius: 999, textDecoration: "none", color: "#244332" }}>How RELO works</a>
-          </div>
-        </div>
-        <div style={{ background: "#e4eee4", borderRadius: 32, padding: 28, minHeight: 330, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "#3e7454", fontSize: 13 }}><b>COMMUNITY IMPACT</b><span>↗ Live demo</span></div>
-          <div><div style={{ fontSize: 58, fontWeight: 800, color: "#176b46" }}>2,480</div><div style={{ color: "#52715c" }}>items given another life</div></div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {["Share", "Borrow", "Repeat"].map((x) => <span key={x} style={{ background: "#fff", borderRadius: 999, padding: "10px 15px", fontSize: 13 }}>{x}</span>)}
-          </div>
-        </div>
-      </section>
-
-      <section id="discover">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 22 }}>
-          <div><p style={{ color: "#39865b", fontWeight: 700, fontSize: 12, letterSpacing: 2 }}>MADE FOR SHARING</p><h2 style={{ fontSize: 34, margin: "8px 0" }}>Find what you need.</h2></div>
-          <span style={{ color: "#718078", fontSize: 13 }}>Sample listings · demo data</span>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
-          {categories.map((x) => <button key={x} style={{ border: "1px solid #d7e0d8", background: "white", borderRadius: 999, padding: "10px 16px", color: "#31533d" }}>{x}</button>)}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 18 }}>
-          {sampleItems.map((item, i) => <article key={item.name} style={{ background: "white", border: "1px solid #e2e9e3", borderRadius: 22, padding: 20 }}>
-            <div style={{ height: 140, borderRadius: 15, background: ["#e6eee5","#eee9df","#e6eaf0"][i], display: "grid", placeItems: "center", fontSize: 46 }}>{["🚲","🛠️","📚"][i]}</div>
-            <p style={{ color: "#39865b", fontSize: 12, fontWeight: 700 }}>{item.category.toUpperCase()} · {item.distance}</p>
-            <h3 style={{ margin: "8px 0" }}>{item.name}</h3>
-            <p style={{ color: "#718078", fontSize: 13 }}>Shared by {item.owner}</p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, borderTop: "1px solid #edf1ed", paddingTop: 14 }}>
-              <span style={{ color: "#176b46", fontSize: 12, fontWeight: 700 }}>{item.tag} · {item.score}</span>
-              <button style={{ border: 0, background: "#176b46", color: "white", borderRadius: 999, padding: "9px 13px" }}>Request</button>
-            </div>
-          </article>)}
-        </div>
-      </section>
-      <section id="how" style={{ marginTop: 76, background: "#173d2d", color: "white", borderRadius: 28, padding: 32 }}>
-        <p style={{ color: "#b4d7bd", letterSpacing: 2, fontSize: 12, fontWeight: 700 }}>A BETTER WAY TO CONSUME</p>
-        <h2 style={{ fontSize: 36, margin: "10px 0 28px" }}>Discover. Match. Share. Return.</h2>
-        <p style={{ color: "#d4e5d8", maxWidth: 700, lineHeight: 1.7 }}>RELO helps communities use existing resources more efficiently, reducing unnecessary purchases and extending the useful life of everyday items.</p>
-      </section>
-      <footer style={{ padding: "30px 0", color: "#77857b", fontSize: 13 }}>© 2026 RELO · Resources deserve another life.</footer>
-    </main>
-  );
+"use client";
+import { useEffect,useMemo,useState,type FormEvent } from "react";
+type Item={id:string;name:string;category:string;description:string;owner:string;emoji:string;available:boolean};
+type Req={id:string;itemId:string;itemName:string;borrower:string;purpose:string;date:string;status:"Pending"|"Approved"|"Waitlisted"|"Declined"};
+const cats=["All","Electronics","Books","Tools","Sports","Furniture","Travel"];
+const seed:Item[]=[{id:"bike",name:"Mountain Bicycle",category:"Sports",description:"A sturdy hybrid bike, perfect for a weekend ride.",owner:"Arun",emoji:"🚲",available:true},{id:"drill",name:"Cordless Drill",category:"Tools",description:"18V drill with a set of bits. Great for small repairs.",owner:"Meera",emoji:"🛠️",available:true},{id:"books",name:"Physics Reference Set",category:"Books",description:"Mechanics and electromagnetism reference books.",owner:"Kavin",emoji:"📚",available:true},{id:"camera",name:"Mirrorless Camera",category:"Electronics",description:"An entry-level camera for a short trip or project.",owner:"Nila",emoji:"📷",available:true},{id:"tent",name:"Two-person Camping Tent",category:"Travel",description:"Lightweight tent, clean and ready for a weekend trip.",owner:"You",emoji:"⛺",available:true}];
+const today=()=>new Date().toISOString().slice(0,10);
+export default function Home(){
+ const [items,setItems]=useState(seed),[reqs,setReqs]=useState<Req[]>([]),[tab,setTab]=useState("discover"),[cat,setCat]=useState("All"),[q,setQ]=useState(""),[notice,setNotice]=useState("");
+ const [form,setForm]=useState({name:"",category:"Tools",description:"",owner:"You",emoji:"📦"});
+ useEffect(()=>{try{const a=localStorage.getItem("relo.items.v1"),b=localStorage.getItem("relo.requests.v1");if(a)setItems(JSON.parse(a));if(b)setReqs(JSON.parse(b));else setReqs([{id:"demo-incoming",itemId:"tent",itemName:"Two-person Camping Tent",borrower:"Priya",purpose:"Weekend camping trip",date:today(),status:"Pending"}]);}catch{setNotice("Could not load local demo data.");}},[]);
+ useEffect(()=>{localStorage.setItem("relo.items.v1",JSON.stringify(items));},[items]);useEffect(()=>{localStorage.setItem("relo.requests.v1",JSON.stringify(reqs));},[reqs]);
+ const found=useMemo(()=>items.filter(x=>x.available&&(cat==="All"||x.category===cat)&&`${x.name} ${x.category} ${x.description}`.toLowerCase().includes(q.toLowerCase())),[items,cat,q]);
+ function ask(x:Item){if(reqs.some(r=>r.itemId===x.id&&r.borrower==="You"&&["Pending","Approved"].includes(r.status))){setNotice("You already have an active request for this item.");return;}setReqs(v=>[{id:crypto.randomUUID(),itemId:x.id,itemName:x.name,borrower:"You",purpose:"Personal use",date:today(),status:"Pending"},...v]);setNotice("Borrow request sent.");}
+ function publish(e:FormEvent){e.preventDefault();if(!form.name.trim())return;setItems(v=>[{...form,id:crypto.randomUUID(),available:true},...v]);setForm({name:"",category:"Tools",description:"",owner:"You",emoji:"📦"});setTab("discover");setNotice("Resource published in this browser.");}
+ function decide(r:Req,status:Req["status"]){setReqs(v=>v.map(x=>x.id===r.id?{...x,status}:status==="Approved"&&x.itemId===r.itemId&&x.status==="Pending"?{...x,status:"Waitlisted"}:x));if(status==="Approved")setItems(v=>v.map(x=>x.id===r.itemId?{...x,available:false}:x));setNotice(`Request ${status.toLowerCase()}.`);}
+ return <main className="shell">
+ <nav className="nav"><a className="brand" href="#">relo<span>.</span></a><div className="navlinks"><button onClick={()=>setTab("discover")}>Discover</button><button onClick={()=>setTab("activity")}>My activity <small>{reqs.length}</small></button><button className="share-nav" onClick={()=>setTab("share")}>＋ Share a resource</button></div></nav>
+ <section className="hero"><div><p className="eyebrow">THE COMMUNITY SHARING NETWORK</p><h1>Own less.<br/><em>Experience</em> more.</h1><p className="intro">The things sitting unused in one home could be exactly what someone nearby needs. Give good resources another life.</p><div className="hero-actions"><button className="primary" onClick={()=>setTab("discover")}>Explore resources ↗</button><button className="secondary" onClick={()=>setTab("share")}>List something</button></div></div><aside className="impact"><div className="impact-top"><b>COMMUNITY IMPACT</b><span>LOCAL DEMO</span></div><div><strong>{items.length.toString().padStart(2,"0")}</strong><p>resources in the community</p></div><div className="impact-pills"><span>Share</span><span>Borrow</span><span>Repeat</span></div><div className="impact-note">Every shared item is one less thing someone needs to buy.</div></aside></section>
+ {notice&&<div className="notice">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
+ {tab==="discover"&&<section className="content"><div className="section-head"><div><p className="eyebrow">MADE FOR SHARING</p><h2>Find what you need.</h2><p className="muted">Useful things, shared by people around you.</p></div><span className="result-count">{found.length} resources</span></div><div className="search-row"><input placeholder="Search bikes, books, tools..." value={q} onChange={e=>setQ(e.target.value)}/><button className="secondary" onClick={()=>setQ("")}>Clear</button></div><div className="chips">{cats.map(c=><button key={c} className={cat===c?"chip selected":"chip"} onClick={()=>setCat(c)}>{c}</button>)}</div><div className="cards">{found.map(x=><article className="item-card" key={x.id}><div className="item-art"><span>{x.emoji}</span><small>AVAILABLE</small></div><div className="item-body"><p className="item-meta">{x.category.toUpperCase()} · NEARBY</p><h3>{x.name}</h3><p className="description">{x.description}</p><div className="card-bottom"><span>Shared by <b>{x.owner}</b></span><button className="request-btn" onClick={()=>ask(x)}>Request ↗</button></div></div></article>)}</div>{!found.length&&<div className="empty"><h3>No resources found</h3><p>Try another search or list the resource you wish existed.</p></div>}</section>}
+ {tab==="share"&&<section className="content narrow"><p className="eyebrow">PASS IT FORWARD</p><h2>Give an item another life.</h2><p className="muted">Add a few details so your neighbours know what they can borrow.</p><form className="listing-form" onSubmit={publish}><label>Resource name<input required maxLength={70} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Folding table"/></label><label>Category<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{cats.slice(1).map(c=><option key={c}>{c}</option>)}</select></label><label>Description<textarea rows={3} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Condition, accessories, best use..."/></label><label>Your display name<input required value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label><button className="primary" type="submit">Publish resource ↗</button><p className="form-footnote">Demo mode: data is saved in this browser only. Authentication and cloud sync come next.</p></form></section>}
+ {tab==="activity"&&<section className="content"><p className="eyebrow">YOUR RELO ACTIVITY</p><h2>Requests & lending.</h2><p className="muted">Review incoming requests and track your own.</p><div className="request-list">{reqs.map(r=><article className="request-card" key={r.id}><div><p className="item-meta">BORROW REQUEST · {r.date}</p><h3>{r.itemName}</h3><p className="muted">{r.borrower==="You"?"You requested":`Incoming from ${r.borrower}`} · {r.purpose}</p></div><div className="request-actions"><span className={`status ${r.status.toLowerCase()}`}>{r.status}</span>{r.borrower!=="You"&&r.status==="Pending"&&<><button className="approve-btn" onClick={()=>decide(r,"Approved")}>Approve</button><button className="quiet-btn" onClick={()=>decide(r,"Waitlisted")}>Waitlist</button><button className="quiet-btn" onClick={()=>decide(r,"Declined")}>Decline</button></>}</div></article>)}</div>{!reqs.length&&<p className="muted">No requests yet. Discover a resource to get started.</p>}</section>}
+ <section className="how"><p className="eyebrow">A BETTER WAY TO CONSUME</p><h2>Discover. Match. Share. Return.</h2><p>RELO helps communities use existing resources more efficiently, reducing unnecessary purchases and extending the useful life of everyday items.</p></section><footer>© 2026 RELO <span>Resources deserve another life.</span></footer></main>;
 }
