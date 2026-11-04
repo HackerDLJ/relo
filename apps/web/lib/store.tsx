@@ -22,6 +22,7 @@ import {
   type Urgency,
 } from "@relo/core/engine";
 import { createSeed, realToday, STATE_VERSION, type AppState } from "./seed";
+import { createProfile as saveProfile, emptyState, loadRemote, persistDiff, remoteEnabled, sb } from "./remote";
 import { AREA_COORDS } from "./areas";
 import { useToast } from "@/components/toast";
 
@@ -72,11 +73,13 @@ function reopenWaitlist(s: AppState, itemId: string): AppState {
 }
 
 /** Idempotent: reminders once per day, each overdue stage once. Simulated notifications only. */
-export function sweep(s: AppState): AppState {
+export function sweep(s: AppState, onlyUser?: string): AppState {
   const today = todayOf(s);
   let next = s;
   for (const r of s.requests) {
     if (r.status !== "active") continue;
+    // With a shared database only the two people on a loan process it, so rules never run twice.
+    if (onlyUser && r.borrowerId !== onlyUser && s.items.find((i) => i.id === r.itemId)?.ownerId !== onlyUser) continue;
     const st = overdueStatus(r, today, next.settings);
     const title = itemTitle(next, r.itemId);
     const owner = next.items.find((i) => i.id === r.itemId)!.ownerId;
@@ -100,7 +103,7 @@ export function sweep(s: AppState): AppState {
         } else if (k === 3) {
           next = {
             ...next,
-            trustEvents: [...next.trustEvents, { id: uid("t"), userId: r.borrowerId, kind: "escalation", delta: -10, date: today, note: `Escalated: ${title} ${st.daysLate} days overdue`, refId: r.id }],
+            trustEvents: [...next.trustEvents, { id: `t-esc-${r.id}`, userId: r.borrowerId, kind: "escalation", delta: -10, date: today, note: `Escalated: ${title} ${st.daysLate} days overdue`, refId: r.id }],
           };
           next = notify(next, r.borrowerId, "escalation", `Escalated: ${title}`, "Community moderators have been flagged (simulated). An extra 10 trust points were deducted.");
           next = notify(next, owner, "escalation", `Escalated: ${title}`, "The overdue loan was escalated to community moderators (simulated).");
@@ -165,32 +168,81 @@ type Ctx = {
   trust(userId: string): number;
   actions: Actions;
   persistError: string | null;
+  auth: AuthApi;
+};
+
+export type AuthStatus = "local" | "loading" | "signedOut" | "needsProfile" | "ready";
+export type AuthApi = {
+  status: AuthStatus;
+  email: string | null;
+  metaName: string;
+  metaArea: string;
+  signIn(email: string, password: string): Promise<string | null>;
+  signUp(email: string, password: string, name: string, area: string): Promise<string | null>;
+  createProfile(name: string, area: string, bio: string): Promise<string | null>;
+  signOut(): Promise<void>;
 };
 
 const StoreCtx = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(() => createSeed());
+  const toast = useToast();
+  const [state, setState] = useState<AppState>(() => (remoteEnabled ? emptyState() : createSeed()));
   const [hydrated, setHydrated] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
+  const [status, setStatus] = useState<AuthStatus>(remoteEnabled ? "loading" : "local");
+  const [email, setEmail] = useState<string | null>(null);
+  const [meta, setMeta] = useState({ name: "", area: "" });
   const ref = useRef(state);
+  const uidRef = useRef<string>("");
+  const queue = useRef<Promise<void>>(Promise.resolve());
 
-  const save = useCallback((s: AppState) => {
+  const reload = useCallback(async () => {
+    if (!uidRef.current) return;
+    const fresh = await loadRemote(uidRef.current);
+    if (!fresh) { setStatus("needsProfile"); return; }
+    const swept = sweep(fresh, uidRef.current);
+    const prev = ref.current;
+    ref.current = swept;
+    setState(swept);
+    setStatus("ready");
+    setHydrated(true);
+    if (swept !== fresh) {
+      queue.current = queue.current.then(() => persistDiff(fresh, swept, uidRef.current)).catch(() => undefined);
+    }
+    void prev;
+  }, []);
+
+  const save = useCallback((s: AppState, prev: AppState) => {
+    if (remoteEnabled) {
+      queue.current = queue.current
+        .then(() => persistDiff(prev, s, uidRef.current))
+        .then(() => setPersistError(null))
+        .catch(async (e: Error) => {
+          toast.error(e.message);
+          setPersistError(e.message);
+          try { await reload(); } catch { /* keep optimistic state */ }
+        });
+      return;
+    }
     try {
       localStorage.setItem(KEY, JSON.stringify(s));
       setPersistError(null);
     } catch {
       setPersistError("Browser storage is full. Recent changes are kept for this session only. Try removing large photos.");
     }
-  }, []);
+  }, [reload, toast]);
 
   const commit = useCallback((s: AppState) => {
+    const prev = ref.current;
     ref.current = s;
     setState(s);
-    save(s);
+    save(s, prev);
   }, [save]);
 
+  /* ---- local demo mode (no Supabase configured) ---- */
   useEffect(() => {
+    if (remoteEnabled) return;
     let s: AppState | null = null;
     try {
       const raw = localStorage.getItem(KEY);
@@ -204,12 +256,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const base = sweep(s ?? createSeed());
     ref.current = base;
     setState(base);
-    save(base);
+    localStorage.setItem(KEY, JSON.stringify(base));
     setHydrated(true);
-  }, [save]);
+  }, []);
 
-  // Keep tabs in sync.
   useEffect(() => {
+    if (remoteEnabled) return;
     const onStorage = (e: StorageEvent) => {
       if (e.key !== KEY || !e.newValue) return;
       try {
@@ -221,6 +273,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  /* ---- real accounts via Supabase ---- */
+  useEffect(() => {
+    if (!remoteEnabled) return;
+    const c = sb();
+    let alive = true;
+    const apply = async (session: { user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } } | null) => {
+      if (!alive) return;
+      if (!session) {
+        uidRef.current = "";
+        ref.current = emptyState();
+        setState(ref.current);
+        setHydrated(false);
+        setEmail(null);
+        setStatus("signedOut");
+        return;
+      }
+      uidRef.current = session.user.id;
+      setEmail(session.user.email ?? null);
+      setMeta({ name: String(session.user.user_metadata?.name ?? ""), area: String(session.user.user_metadata?.area ?? "") });
+      try { await reload(); } catch (e) { toast.error((e as Error).message); setStatus("signedOut"); }
+    };
+    void c.auth.getSession().then(({ data }) => apply(data.session));
+    const { data: sub } = c.auth.onAuthStateChange((_e, session) => { void apply(session); });
+    const poll = window.setInterval(() => { if (uidRef.current && document.visibilityState === "visible") void reload().catch(() => undefined); }, 15000);
+    const onVis = () => { if (uidRef.current && document.visibilityState === "visible") void reload().catch(() => undefined); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { alive = false; sub.subscription.unsubscribe(); window.clearInterval(poll); document.removeEventListener("visibilitychange", onVis); };
+  }, [reload, toast]);
+
+  const auth = useMemo<AuthApi>(() => ({
+    status, email, metaName: meta.name, metaArea: meta.area,
+    async signIn(e, password) {
+      const { error } = await sb().auth.signInWithPassword({ email: e.trim(), password });
+      return error ? (error.message.includes("Email not confirmed") ? "Please confirm your email first. Check your inbox for the link, then sign in." : error.message) : null;
+    },
+    async signUp(e, password, name, area) {
+      const { data, error } = await sb().auth.signUp({ email: e.trim(), password, options: { data: { name, area } } });
+      if (error) return error.message;
+      if (!data.session) return "CONFIRM";
+      return null;
+    },
+    async createProfile(name, area, bio) {
+      const coords = AREA_COORDS[area];
+      if (!coords) return "Choose your neighbourhood.";
+      if (name.trim().length < 2) return "Enter your name.";
+      try {
+        await saveProfile({ id: uidRef.current, name: name.trim(), area, lat: coords[0], lon: coords[1], joined: realToday(), bio: bio.trim() });
+        await reload();
+        return null;
+      } catch (err) { return (err as Error).message; }
+    },
+    async signOut() { await sb().auth.signOut(); },
+  }), [status, email, meta, reload]);
 
   const actions = useMemo<Actions>(() => {
     const get = () => ref.current;
@@ -260,6 +366,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const actions: Actions = {
       switchUser(id) {
+        if (remoteEnabled) return fail("Account switching is only available in local demo mode.");
         if (!get().users.some((u) => u.id === id)) return fail("Unknown account.");
         commit({ ...get(), currentUserId: id });
         return ok(`Switched to ${get().users.find((u) => u.id === id)!.name} (demo account).`);
@@ -550,6 +657,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       advanceDays(n) {
+        if (remoteEnabled) return fail("The demo clock is only available in local demo mode.");
         if (!Number.isInteger(n) || n < 1 || n > 30) return fail("Advance between 1 and 30 days.");
         const s = { ...get(), clockOffset: get().clockOffset + n };
         commit(sweep(s));
@@ -557,6 +665,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       resetDemo() {
+        if (remoteEnabled) return fail("Reset is only available in local demo mode.");
         const fresh = sweep(createSeed());
         commit(fresh);
         return ok("Demo data reset to the original seed.");
@@ -568,11 +677,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(() => {
     const me = state.users.find((u) => u.id === state.currentUserId) ?? state.users[0];
     return {
-      state, hydrated, today: todayOf(state), me, persistError,
+      state, hydrated, today: todayOf(state), me, persistError, auth,
       trust: (userId: string) => trustOfEvents(state.trustEvents, userId),
       actions,
     };
-  }, [state, hydrated, actions, persistError]);
+  }, [state, hydrated, actions, persistError, auth]);
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

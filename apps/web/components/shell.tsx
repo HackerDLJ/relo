@@ -7,6 +7,7 @@ import { AlarmClock, ArrowLeftRight, Bell, Compass, Home, Hourglass, Leaf, Megap
 import { useStore, isSuspended } from "@/lib/store";
 import { overdueStatus } from "@relo/core/engine";
 import { Avatar, Modal, Spinner, SimBadge, ago } from "./ui";
+import { AuthGate } from "./auth";
 
 export const NAV = [
   { href: "/", label: "Home", icon: Home },
@@ -64,7 +65,14 @@ function Logo({ size }: { size: number }) {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { hydrated, state, me, today, persistError, actions } = useStore();
+  const { auth } = useStore();
+  if (auth.status !== "local" && auth.status !== "ready") return <AuthGate />;
+  return <ShellInner>{children}</ShellInner>;
+}
+
+function ShellInner({ children }: { children: ReactNode }) {
+  const { hydrated, state, me, today, persistError, actions, auth } = useStore();
+  const live = auth.status === "ready";
   const [menu, setMenu] = useState(false);
   const [bell, setBell] = useState(false);
   const path = usePathname();
@@ -76,16 +84,31 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="sticky top-0 hidden h-screen flex-col gap-4 overflow-y-auto border-r border-line bg-paper px-4 py-5 md:flex">
         <Link href="/" aria-label="RELO home" className="block"><Logo size={112} /></Link>
         <NavList />
-        <div className="mt-auto rounded-xl border border-cyan/40 bg-cyan-soft p-3 text-xs leading-relaxed text-navy-700">
-          <p className="mb-1 flex items-center gap-1.5 font-bold"><FlaskConical className="h-3.5 w-3.5" aria-hidden /> Prototype</p>
-          Demo people and data. Notifications and moderation are simulated. Your changes persist in this browser only.
-        </div>
+        {live ? (
+          <div className="mt-auto rounded-xl border border-line bg-white p-3 text-xs leading-relaxed text-navy-700">
+            <p className="font-bold">{me.name}</p>
+            <p className="truncate text-mute">{auth.email}</p>
+            <button className="mt-2 font-semibold text-navy underline" onClick={() => void auth.signOut()}>Sign out</button>
+          </div>
+        ) : (
+          <div className="mt-auto rounded-xl border border-cyan/40 bg-cyan-soft p-3 text-xs leading-relaxed text-navy-700">
+            <p className="mb-1 flex items-center gap-1.5 font-bold"><FlaskConical className="h-3.5 w-3.5" aria-hidden /> Local demo mode</p>
+            Demo people and data stored in this browser only.
+          </div>
+        )}
       </aside>
 
       <div className="min-w-0">
         <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
           <Link href="/" className="md:hidden" aria-label="RELO home"><Logo size={44} /></Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {live ? (
+              <div className="flex items-center gap-2 text-xs text-mute">
+                <Avatar name={me.name} size={28} />
+                <span className="hidden max-w-[10rem] truncate font-semibold text-ink sm:inline">{me.name}</span>
+                <button className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-navy hover:bg-paper md:hidden" onClick={() => void auth.signOut()}>Sign out</button>
+              </div>
+            ) : (
             <label className="flex items-center gap-2 text-xs text-mute">
               <span className="hidden sm:inline">Viewing as</span>
               <Avatar name={me.name} size={28} />
@@ -95,6 +118,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </select>
               <span className="hidden sm:inline"><SimBadge>Demo account</SimBadge></span>
             </label>
+            )}
             <button onClick={() => setBell(true)} aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} className="relative rounded-full border border-line bg-white p-2 text-navy hover:bg-paper">
               <Bell className="h-[18px] w-[18px]" />
               {unread > 0 && <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-cyan px-1 text-[10px] font-bold text-navy">{unread}</span>}
@@ -126,7 +150,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu"><NavList onNavigate={() => setMenu(false)} /></Modal>
 
       <Modal open={bell} onClose={() => setBell(false)} title="Notifications"
-        footer={<><span className="mr-auto"><SimBadge>All simulated: nothing is emailed or texted</SimBadge></span><button className="btn-ghost" onClick={() => actions.markRead()}>Mark all read</button></>}>
+        footer={<><span className="mr-auto"><SimBadge>In-app only: nothing is emailed or texted</SimBadge></span><button className="btn-ghost" onClick={() => actions.markRead()}>Mark all read</button></>}>
         {state.notifications.filter((n) => n.userId === me.id).length === 0 ? (
           <p className="py-6 text-center text-sm text-mute">You're all caught up.</p>
         ) : (

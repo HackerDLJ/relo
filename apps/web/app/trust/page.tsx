@@ -44,7 +44,7 @@ export default function TrustPage() {
           <section className="card p-4" aria-labelledby="hist"><h2 id="hist" className="mb-3 text-base font-semibold text-navy">Your trust history</h2>
             {events.length === 0 ? <p className="text-sm text-mute">No events yet. Your first completed loan will appear here.</p> : <ul className="divide-y divide-line">{events.slice(0, 25).map((e) => <li key={e.id} className="flex items-center gap-3 py-2.5 text-sm"><span className={`w-10 shrink-0 text-right font-bold tabular-nums ${e.delta >= 0 ? "text-emerald-800" : "text-red-800"}`}>{e.delta > 0 ? "+" : ""}{e.delta}</span><span className="min-w-0 flex-1 text-ink">{e.note}</span><span className="text-xs text-mute">{fmtDate(e.date)}</span></li>)}</ul>}</section>
 
-          <section className="card p-4" aria-labelledby="comm"><h2 id="comm" className="mb-3 text-base font-semibold text-navy">Community trust (demo members)</h2>
+          <section className="card p-4" aria-labelledby="comm"><h2 id="comm" className="mb-3 text-base font-semibold text-navy">Community trust</h2>
             <ul className="space-y-2">{everyone.map(({ u, s }) => <li key={u.id} className="flex items-center gap-3 text-sm"><Avatar name={u.name} size={28} /><span className="min-w-0 flex-1 truncate font-medium text-navy">{u.name}{u.id === me.id ? " (you)" : ""}</span><Badge tone={s.score >= 80 ? "green" : s.score >= 60 ? "cyan" : s.score >= 40 ? "amber" : "red"}>{s.level}</Badge><span className="w-8 text-right font-bold tabular-nums text-navy">{s.score}</span></li>)}</ul></section>
         </div>
       </div>

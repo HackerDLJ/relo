@@ -55,8 +55,8 @@ export type User = {
   lon: number;
   joined: ISODate;
   bio: string;
-  /** Demo accounts are always simulated people in the prototype. */
-  demo: true;
+  /** True only for simulated people in local demo mode. */
+  demo?: boolean;
 };
 
 export type Item = {
