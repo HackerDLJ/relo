@@ -84,11 +84,11 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[272px_1fr]">
-      <aside className="sticky top-0 hidden h-screen flex-col gap-4 overflow-y-auto border-r border-line bg-paper px-4 py-5 md:flex">
+      <aside className="glass-bar sticky top-0 hidden h-screen flex-col gap-4 overflow-y-auto border-r border-line bg-paper px-4 py-5 md:flex">
         <Link href="/" aria-label="RELO home" className="block"><Logo size={176} /></Link>
         <NavList />
         {live ? (
-          <div className="mt-auto rounded-xl border border-line bg-white p-3 text-xs leading-relaxed text-navy-700">
+          <div className="mt-auto glass-chip rounded-xl border border-line bg-white p-3 text-xs leading-relaxed text-navy-700">
             <p className="font-bold">{me.name}</p>
             <p className="truncate text-mute">{auth.email}</p>
             <button className="mt-2 font-semibold text-navy underline" onClick={() => void auth.signOut()}>Sign out</button>
@@ -102,8 +102,8 @@ function ShellInner({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
-          <Link href="/" className="md:hidden" aria-label="RELO home"><Logo size={60} /></Link>
+        <header className="glass-bar sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
+          <Link href="/" className="shrink-0 md:hidden" aria-label="RELO home"><Logo size={44} /></Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <ThemeSwitch />
             {live ? (
@@ -117,7 +117,7 @@ function ShellInner({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">Viewing as</span>
               <Avatar name={me.name} size={28} />
               <select aria-label="Switch demo account" value={me.id} onChange={(e) => actions.switchUser(e.target.value)}
-                className="max-w-[9.5rem] rounded-full border border-line bg-white py-1.5 pl-3 pr-7 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-cyan/40">
+                className="max-w-[6.5rem] rounded-full sm:max-w-[9.5rem] border border-line bg-white py-1.5 pl-3 pr-7 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-cyan/40">
                 {state.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
               <span className="hidden sm:inline"><SimBadge>Demo account</SimBadge></span>
@@ -139,7 +139,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="Quick navigation" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav aria-label="Quick navigation" className="glass-bar liquid fixed inset-x-2 bottom-2 z-50 grid grid-cols-5 overflow-hidden rounded-3xl border border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {(["/", "/discover", "/messages", "/listings"] as const).map((h) => NAV.find((n) => n.href === h)!).map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" : path.startsWith(href);
           return (

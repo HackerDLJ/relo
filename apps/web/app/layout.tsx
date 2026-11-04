@@ -17,6 +17,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
       <body>
+        <svg width="0" height="0" aria-hidden focusable="false" style={{ position: "absolute" }}>
+          <filter id="liquid-glass" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves="2" seed="7" result="noise" />
+            <feGaussianBlur in="noise" stdDeviation="3" result="soft" />
+            <feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
         <ToastProvider>
           <StoreProvider>
             <Shell>{children}</Shell>

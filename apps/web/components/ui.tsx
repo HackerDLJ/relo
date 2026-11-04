@@ -79,7 +79,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
       <div className="absolute inset-0 bg-navy/40 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`rise relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-pop sm:rounded-2xl ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"}`}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`glass-panel rise relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-pop sm:rounded-2xl ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"}`}>
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="text-lg font-semibold text-navy">{title}</h2>
           <button aria-label="Close" onClick={onClose} className="rounded-full p-1.5 text-mute hover:bg-paper hover:text-ink"><X className="h-5 w-5" /></button>
