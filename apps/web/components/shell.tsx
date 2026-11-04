@@ -1,9 +1,10 @@
 "use client";
 
+import { CommandPalette } from "./command";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
-import { AlarmClock, ArrowLeftRight, Bell, Compass, Home, Hourglass, Leaf, Megaphone, Menu, MessageSquare, Package, Send, Settings, ShieldCheck, Sparkles, FlaskConical } from "lucide-react";
+import { useMemo, useState, type ReactNode, useEffect } from "react";
+import { AlarmClock, ArrowLeftRight, Bell, Compass, Home, Hourglass, Leaf, Megaphone, Menu, MessageSquare, Package, Send, Settings, ShieldCheck, Sparkles, FlaskConical, Search } from "lucide-react";
 import { useStore, isSuspended } from "@/lib/store";
 import { overdueStatus } from "@relo/core/engine";
 import { Avatar, Modal, Spinner, SimBadge, ago } from "./ui";
@@ -78,6 +79,16 @@ function ShellInner({ children }: { children: ReactNode }) {
   const live = auth.status === "ready";
   const [menu, setMenu] = useState(false);
   const [bell, setBell] = useState(false);
+  const [cmd, setCmd] = useState(false);
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey)) { e.preventDefault(); setCmd(true); }
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
   const path = usePathname();
   const unread = state.notifications.filter((n) => n.userId === me.id && !n.read).length;
   const suspended = hydrated && isSuspended(state, me.id);
@@ -105,6 +116,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <header className="glass-bar sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
           <Link href="/" className="shrink-0 md:hidden" aria-label="RELO home"><Logo size={44} /></Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <button onClick={() => setCmd(true)} aria-label="Search" className="glass-chip flex items-center gap-2 rounded-full border border-line bg-white p-2 text-mute transition hover:text-navy sm:px-3.5 sm:py-1.5"><Search className="h-[18px] w-[18px] sm:h-4 sm:w-4" aria-hidden /><span className="hidden text-xs font-semibold sm:inline">Search</span><kbd className="hidden rounded border border-line px-1 text-[10px] font-semibold lg:inline">Ctrl K</kbd></button>
             <ThemeSwitch />
             {live ? (
               <div className="flex items-center gap-2 text-xs text-mute">
@@ -151,6 +163,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <button onClick={() => setMenu(true)} className="flex flex-col items-center gap-0.5 py-2.5 text-[10.5px] font-semibold text-mute"><Menu className="h-5 w-5" aria-hidden />Menu</button>
       </nav>
 
+      <CommandPalette open={cmd} onClose={() => setCmd(false)} />
       <Modal open={menu} onClose={() => setMenu(false)} title="Menu"><NavList onNavigate={() => setMenu(false)} /></Modal>
 
       <Modal open={bell} onClose={() => setBell(false)} title="Notifications"

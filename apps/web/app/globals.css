@@ -224,3 +224,8 @@ html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after { transit
   .card:is(a):hover, .btn:hover:not(:disabled) { transform: none; }
   main .grid > *, main ul.space-y-4 > li, main ul.space-y-6 > li, .rise { animation: fade .2s ease both !important; }
 }
+
+/* Heart: pops when saved. */
+@keyframes heart-pop { 0% { transform: scale(1); } 35% { transform: scale(1.45); } 70% { transform: scale(.9); } 100% { transform: scale(1); } }
+.heart.is-saved svg { animation: heart-pop .5s var(--spring); filter: drop-shadow(0 2px 6px rgba(244, 63, 94, .45)); }
+.dark .heart { background: rgba(17, 31, 54, .7); border-color: rgba(255, 255, 255, .18); color: #E8F1FB; }

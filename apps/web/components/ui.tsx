@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X, Inbox } from "lucide-react";
 
 export function PageHeader({ title, subtitle, actions, eyebrow }: { title: string; subtitle?: string; actions?: ReactNode; eyebrow?: string }) {
@@ -11,7 +11,7 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: strin
         <h1 className="text-[26px] font-bold leading-tight text-navy sm:text-[32px]">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-mute">{subtitle}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-2 [&>*]:whitespace-nowrap">{actions}</div>}
     </header>
   );
 }
@@ -116,11 +116,24 @@ export function ScoreBar({ value, max = 100, label, detail }: { value: number; m
   );
 }
 
+/** Counts up to a number once on mount. Skips the animation for reduced-motion users. */
+export function CountUp({ to, prefix = "" }: { to: number; prefix?: string }) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches || to === 0) { setV(to); return; }
+    let raf = 0; const t0 = performance.now(), dur = 900;
+    const tick = (t: number) => { const k = Math.min(1, (t - t0) / dur); setV(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to]);
+  return <>{prefix}{v.toLocaleString("en-IN")}</>;
+}
+
 export function Stat({ label, value, sub, icon }: { label: string; value: ReactNode; sub?: string; icon?: ReactNode }) {
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex items-center justify-between text-mute"><span className="text-xs font-semibold">{label}</span>{icon}</div>
-      <div className="mt-2 text-2xl font-bold tabular-nums text-navy sm:text-[28px]">{value}</div>
+      <div className="mt-2 text-2xl font-bold tabular-nums text-navy sm:text-[28px]">{typeof value === "number" ? <CountUp to={value} /> : typeof value === "string" && /^₹[\d,]+$/.test(value) ? <CountUp to={Number(value.replace(/[^\d]/g, ""))} prefix="₹" /> : value}</div>
       {sub && <p className="mt-0.5 text-xs text-mute">{sub}</p>}
     </div>
   );

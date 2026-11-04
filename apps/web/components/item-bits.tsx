@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { HeartButton } from "./heart";
 import { Armchair, Baby, Bike, BookOpen, CookingPot, Luggage, Music, MonitorSmartphone, Sprout, Wrench, Package, MapPin, ShieldCheck, BadgeCheck, type LucideIcon } from "lucide-react";
 import type { Item, MatchResult, BorrowRequest } from "@relo/core/engine";
 import { Badge, ScoreBar } from "./ui";
@@ -20,11 +22,12 @@ export const CategoryIcon = ({ category, className = "h-6 w-6" }: { category: st
 };
 
 export function ItemThumb({ item, className = "h-36" }: { item: Pick<Item, "photo" | "category" | "title">; className?: string }) {
-  if (item.photo) {
+  const [broken, setBroken] = useState<string | null>(null);
+  if (item.photo && broken !== item.photo) {
     // eslint-disable-next-line @next/next/no-img-element
     // Bundled product photos (/products/...) are studio shots on plain backgrounds, so show them whole; uploads fill the frame.
     const bundled = !item.photo.startsWith("data:");
-    return <img src={item.photo} alt={item.title} loading="lazy" className={`${className} w-full rounded-xl ${bundled ? "bg-white object-contain" : "object-cover"}`} />;
+    return <img src={item.photo} alt={item.title} loading="lazy" onError={() => setBroken(item.photo ?? null)} className={`${className} w-full rounded-xl ${bundled ? "bg-white object-contain" : "object-cover"}`} />;
   }
   return <ProductArt title={item.title} category={item.category} className={`${className} rounded-xl`} />;
 }
@@ -37,6 +40,7 @@ export function ItemCard({ item, ownerName, trust, match, status, href }: {
       <div className="relative">
         <ItemThumb item={item} className="aspect-[4/3] !rounded-none" />
         {match && <span className="absolute right-2.5 top-2.5 rounded-full bg-navy/90 px-2.5 py-1 text-xs font-bold tabular-nums text-cyan shadow-card backdrop-blur">{match.score}% match</span>}
+        <HeartButton itemId={item.id} className="absolute bottom-2.5 right-2.5 z-10" />
         <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5">
           {item.refurb && <RefurbBadge item={item} />}
           {isSample(item.id) && <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-navy-600 shadow-card">Sample</span>}

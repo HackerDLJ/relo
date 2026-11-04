@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 (2026-11-04)
+- Interactive: save items with a heart (Saved filter in Discover), Ctrl/Cmd+K or "/" quick search for items and pages, animated stat counters.
+- Fixes: a broken photo falls back to the illustration instead of showing alt text; header action buttons no longer wrap on item pages.
+
 ## 0.3.2 (2026-11-04)
 - Cozier, smoother UI: spring motion, blur-in page and card entrances, pointer-following glass highlight on cards, lit glass nav pills, rounder shapes, warm background glow, theme cross-fade, glassy scrollbars. All motion respects reduced-motion.
 

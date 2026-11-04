@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { CATEGORIES, canRent, canSell } from "@relo/core/engine";
 import { useStore } from "@/lib/store";
+import { useSaved } from "@/lib/saved";
 import { useDerived } from "@/lib/derive";
 import { EmptyState, Field, PageHeader } from "@/components/ui";
 import { ItemCard } from "@/components/item-bits";
 
 type Sort = "match" | "distance" | "trust";
-type Kind = "all" | "rent" | "buy" | "refurb";
-const KINDS: [Kind, string][] = [["all", "All"], ["rent", "Borrow or rent"], ["buy", "Buy"], ["refurb", "Refurbished"]];
+type Kind = "all" | "rent" | "buy" | "refurb" | "saved";
+const KINDS: [Kind, string][] = [["all", "All"], ["rent", "Borrow or rent"], ["buy", "Buy"], ["refurb", "Refurbished"], ["saved", "Saved ♥"]];
 
 export default function DiscoverPage() {
   const { state, me, today, trust } = useStore();
@@ -23,6 +24,7 @@ export default function DiscoverPage() {
   const [until, setUntil] = useState("");
   const [sort, setSort] = useState<Sort>("match");
   const [kind, setKind] = useState<Kind>(() => { const k = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("kind"); return KINDS.some(([v]) => v === k) ? (k as Kind) : "all"; });
+  const saved = useSaved(me.id);
   const [showFilters, setShowFilters] = useState(false);
 
   const datesOk = avail !== "dates" || (from && until && from <= until);
@@ -31,7 +33,7 @@ export default function DiscoverPage() {
     const useDates = avail === "dates" && from && until && from <= until;
     return state.items
       .filter((i) => i.active && !i.sold)
-      .filter((i) => kind === "all" || (kind === "rent" ? canRent(i) : kind === "buy" ? canSell(i) : !!i.refurb))
+      .filter((i) => kind === "all" || (kind === "rent" ? canRent(i) : kind === "buy" ? canSell(i) : kind === "saved" ? saved.includes(i.id) : !!i.refurb))
       .filter((i) => !cat || i.category === cat)
       .filter((i) => !needle || `${i.title} ${i.description} ${i.category}`.toLowerCase().includes(needle))
       .map((item) => ({ item, m: matchFor(item, { category: cat || undefined, from: useDates ? from : undefined, until: useDates ? until : undefined, radiusKm: 25 }) }))
@@ -44,7 +46,7 @@ export default function DiscoverPage() {
       })
       .filter((r) => (avail !== "any" && !canRent(r.item) ? false : avail === "now" ? r.frac >= 0.5 : avail === "dates" && useDates ? r.m.eligible : true))
       .sort((a, b) => (sort === "distance" ? a.m.distanceKm - b.m.distanceKm : sort === "trust" ? trust(b.item.ownerId) - trust(a.item.ownerId) : b.m.score - a.m.score) || a.item.id.localeCompare(b.item.id));
-  }, [state.items, state.requests, q, kind, cat, radius, avail, from, until, sort, matchFor, trust]);
+  }, [state.items, state.requests, saved, q, kind, cat, radius, avail, from, until, sort, matchFor, trust]);
 
   const active = (kind !== "all" ? 1 : 0) + (cat ? 1 : 0) + (radius < 25 ? 1 : 0) + (avail !== "any" ? 1 : 0) + (q ? 1 : 0);
   const reset = () => { setKind("all"); setQ(""); setCat(""); setRadius(25); setAvail("any"); setFrom(""); setUntil(""); setSort("match"); };
@@ -84,7 +86,7 @@ export default function DiscoverPage() {
 
       <p className="mb-3 text-sm text-mute" aria-live="polite">{results.length} item{results.length === 1 ? "" : "s"}{cat && ` in ${cat}`}, sorted by {sort === "match" ? "best match" : sort === "distance" ? "distance" : "owner trust"}</p>
       {results.length === 0 ? (
-        <EmptyState title="Nothing matches yet" body="Try a wider distance, a different category or other dates. You can also post what you need and let owners come to you." action={<div className="flex gap-2"><button className="btn-ghost" onClick={reset}>Clear filters</button><a className="btn-primary" href="/requests">Post a need</a></div>} />
+        <EmptyState title={kind === "saved" ? "No saved items yet" : "Nothing matches yet"} body={kind === "saved" ? "Tap the heart on any item to keep it here for later." : "Try a wider distance, a different category or other dates. You can also post what you need and let owners come to you."} action={<div className="flex gap-2"><button className="btn-ghost" onClick={reset}>Clear filters</button><a className="btn-primary" href="/requests">Post a need</a></div>} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map(({ item, m, status }) => (

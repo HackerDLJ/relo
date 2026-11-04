@@ -10,6 +10,7 @@ import { useDerived } from "@/lib/derive";
 import { Avatar, Badge, EmptyState, PageHeader, Spinner, fmtRange } from "@/components/ui";
 import { ItemCard, ItemThumb, MatchBreakdown, RefurbBadge, gradeText } from "@/components/item-bits";
 import { perDay, threadIdOf } from "@/lib/chat";
+import { HeartButton } from "@/components/heart";
 import { photoCredit } from "@/lib/catalog";
 import { BadgeCheck, ShoppingBag } from "lucide-react";
 import { RequestDialog } from "@/components/forms";
@@ -46,7 +47,7 @@ function Detail() {
           <div className="relative"><ItemThumb item={item} className="h-64 sm:h-80" />{item.refurb && <div className="absolute left-3 top-3"><RefurbBadge item={item} /></div>}</div>{photoCredit(item.photo) && <p className="-mt-3 text-[11px] text-mute">{photoCredit(item.photo)}</p>}
           <PageHeader title={item.title} subtitle={item.description}
             actions={mine ? <Link className="btn-primary" href="/listings">Manage listing</Link> : rentable ? <button className="btn-primary" disabled={!!myOpen || !item.active} onClick={() => setReq(true)}>{myOpen ? "Request in progress" : unavailable && item.active ? "Request or join waitlist" : "Request to borrow"}</button> : undefined} />
-          <div className="flex flex-wrap items-center gap-2">{rentable && <span className="rounded-full bg-navy px-3 py-1 text-sm font-bold text-white">{perDay(item.pricePerDay)}</span>}{(item.mode ?? "rent") !== "rent" && <span className="rounded-full bg-emerald-700 px-3 py-1 text-sm font-bold text-white">{rentable ? "Or buy " : "Buy "}₹{Math.round(item.salePrice ?? 0).toLocaleString("en-IN")}</span>}{item.sold && <Badge tone="red">Sold</Badge>}<Badge tone="cyan">{item.category}</Badge><Badge tone="gray">{item.condition}</Badge>{!item.active && <Badge tone="red">Paused by owner</Badge>}</div>
+          <div className="flex flex-wrap items-center gap-2">{rentable && <span className="rounded-full bg-navy px-3 py-1 text-sm font-bold text-white">{perDay(item.pricePerDay)}</span>}{(item.mode ?? "rent") !== "rent" && <span className="rounded-full bg-emerald-700 px-3 py-1 text-sm font-bold text-white">{rentable ? "Or buy " : "Buy "}₹{Math.round(item.salePrice ?? 0).toLocaleString("en-IN")}</span>}{item.sold && <Badge tone="red">Sold</Badge>}<span className="ml-auto"><HeartButton itemId={item.id} /></span><Badge tone="cyan">{item.category}</Badge><Badge tone="gray">{item.condition}</Badge>{!item.active && <Badge tone="red">Paused by owner</Badge>}</div>
           {item.refurb && (
             <section className="card border-emerald-200 p-4" aria-labelledby="refurb"><h2 id="refurb" className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800"><BadgeCheck className="h-4 w-4" aria-hidden />Refurbished · Grade {item.refurb.grade} ({gradeText(item.refurb.grade)})</h2>
               <p className="text-sm text-ink"><b>What was done:</b> {item.refurb.work}</p>
