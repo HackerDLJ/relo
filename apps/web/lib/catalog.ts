@@ -15,6 +15,8 @@ const WIKI: [string, string, string, string][] = [
   ["28-inch travel suitcase", "8/8e/Samsonite_Proxis.jpg/960px-Samsonite_Proxis.jpg", "Photo: Samsonite Proxis, Wikimedia Commons", "CC BY-SA 4.0"],
   ["1080p projector", "1/14/InFocus_IN34.jpg/960px-InFocus_IN34.jpg", "Photo: InFocus IN34, Wikimedia Commons", "Public domain"],
   ["40-piece hand tool kit", "5/50/Husky_tool_set.jpg/960px-Husky_tool_set.jpg", "Photo: Husky tool set, Wikimedia Commons", "CC BY 2.0"],
+  ["Baby stroller", "0/0e/BabyCarriage_20210711_130332.jpg/960px-BabyCarriage_20210711_130332.jpg", "Photo: Baby stroller, Wikimedia Commons", "CC BY-SA 4.0"],
+  ["Engineering mathematics", "1/1d/A_row_of_mathematics_books_at_Jinja_Public_Library%2C_Jinja_City_Centre.jpg/960px-A_row_of_mathematics_books_at_Jinja_Public_Library%2C_Jinja_City_Centre.jpg", "Photo: Mathematics books, Jinja Public Library, Wikimedia Commons", "CC BY-SA 4.0"],
   ["Mini projector", "f/fc/3M_pocket_projector_at_B%26H_Photo_jeh.jpg/960px-3M_pocket_projector_at_B%26H_Photo_jeh.jpg", "Photo: 3M pocket projector, Wikimedia Commons", "CC0"],
 ];
 

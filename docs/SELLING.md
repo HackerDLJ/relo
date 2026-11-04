@@ -8,4 +8,4 @@ Each item is `rent`, `sell` or `both` (`Item.mode`; missing means rent, so old d
 - Photos: bundled studio photos live in `apps/web/public/products`; uploads are still resized data URLs.
 
 ## Web photos
-Ten listings use freely licensed Wikimedia Commons photos, hotlinked and credited on each item page (see `apps/web/lib/catalog.ts`). The stroller and the reference books still use illustrations.
+Twelve listings use freely licensed Wikimedia Commons photos, hotlinked and credited on each item page (see `apps/web/lib/catalog.ts`).
