@@ -47,7 +47,7 @@ export default function ListingsPage() {
               {locked.length > 0 && (
                 <div className="mt-4 border-t border-line pt-3"><h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-navy-600">Reserved and borrowed</h3>
                   <ul className="space-y-2">{locked.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-paper p-3 text-sm"><span className="font-semibold text-navy">{userById(r.borrowerId).name}</span><span className="text-mute">{fmtRange(r.from, r.until)}</span>{state.payments.some((p) => p.requestId === r.id) && <Badge tone="green">Paid online</Badge>}<Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                    <li key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-paper p-3 text-sm"><span className="font-semibold text-navy">{userById(r.borrowerId).name}</span><span className="text-mute">{fmtRange(r.from, r.until)}</span><Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
                       {r.status === "approved" && <button className="btn-primary btn-sm ml-auto" disabled={r.from > today} title={r.from > today ? `Available from ${r.from}` : undefined} onClick={() => act(() => actions.startLoan(r.id))}>Record handover</button>}
                       {r.status === "active" && <a href="/returns" className="btn-ghost btn-sm ml-auto">Manage return</a>}</li>))}</ul></div>
               )}

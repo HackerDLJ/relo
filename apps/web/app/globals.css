@@ -62,3 +62,85 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .dark .bg-navy .text-navy, .dark .bg-navy.text-navy { color: #E8F1FB; }
 .dark .bg-cyan.text-navy, .dark .bg-cyan .text-navy { color: #061B3A; }
 .dark .btn-accent { color: #061B3A; }
+
+/* ------------------------------------------------------------------ glass
+   Frosted "glass" surfaces over a soft, slowly drifting colour field, plus a "liquid" variant
+   with a refractive edge. Everything degrades to the plain solid look when blur is unsupported,
+   when the user asks for reduced transparency, or in forced-colours mode. */
+:root {
+  --glass-bg: rgba(255, 255, 255, .58);
+  --glass-bg-strong: rgba(255, 255, 255, .74);
+  --glass-border: rgba(255, 255, 255, .75);
+  --glass-shadow: 0 8px 32px rgba(6, 27, 58, .10), 0 1px 2px rgba(6, 27, 58, .06);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 -1px 0 rgba(255, 255, 255, .3);
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 38%);
+  --blob-a: rgba(54, 189, 242, .38); --blob-b: rgba(99, 140, 255, .26); --blob-c: rgba(160, 130, 255, .20); --blob-d: rgba(70, 220, 190, .20);
+}
+.dark {
+  --glass-bg: rgba(22, 40, 68, .50);
+  --glass-bg-strong: rgba(18, 34, 60, .66);
+  --glass-border: rgba(255, 255, 255, .14);
+  --glass-shadow: 0 10px 36px rgba(0, 0, 0, .45), 0 1px 2px rgba(0, 0, 0, .4);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, .20), inset 0 -1px 0 rgba(255, 255, 255, .05);
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 40%);
+  --blob-a: rgba(54, 189, 242, .26); --blob-b: rgba(70, 110, 255, .24); --blob-c: rgba(140, 100, 255, .18); --blob-d: rgba(40, 190, 160, .14);
+}
+
+/* Colour field behind everything, so the blur has something to blur. */
+body::before {
+  content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 12% 8%, var(--blob-a), transparent 70%),
+    radial-gradient(34% 32% at 92% 14%, var(--blob-b), transparent 70%),
+    radial-gradient(40% 36% at 78% 92%, var(--blob-c), transparent 70%),
+    radial-gradient(36% 34% at 6% 86%, var(--blob-d), transparent 70%);
+  animation: drift 32s ease-in-out infinite alternate;
+}
+@keyframes drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-2.5%, 2%, 0) scale(1.06); } }
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .card, .glass-bar, .glass-panel, .glass-chip {
+    -webkit-backdrop-filter: blur(16px) saturate(165%); backdrop-filter: blur(16px) saturate(165%);
+  }
+  .card, .dark .card {
+    background-color: var(--glass-bg); background-image: var(--glass-sheen);
+    border-color: var(--glass-border); box-shadow: var(--glass-shadow), var(--glass-hi);
+  }
+  .card:is(a):hover, .dark .card:is(a):hover { background-color: var(--glass-bg-strong); border-color: rgba(54, 189, 242, .6); }
+  .glass-bar, .dark .glass-bar { background-color: var(--glass-bg-strong) !important; border-color: var(--glass-border) !important; -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); }
+  .glass-panel, .dark .glass-panel {
+    background-color: var(--glass-bg-strong) !important; background-image: var(--glass-sheen);
+    border: 1px solid var(--glass-border); box-shadow: 0 24px 80px rgba(0, 0, 0, .35), var(--glass-hi);
+    -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  }
+  .glass-chip, .dark .glass-chip { background-color: var(--glass-bg) !important; border-color: var(--glass-border) !important; box-shadow: var(--glass-hi); }
+  .input, .dark .input { background-color: rgba(255, 255, 255, .55); border-color: var(--glass-border); box-shadow: inset 0 1px 2px rgba(6, 27, 58, .06); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .dark .input { background-color: rgba(8, 18, 34, .5); }
+  .btn-ghost, .dark .btn-ghost { background-color: var(--glass-bg); border-color: var(--glass-border); box-shadow: var(--glass-hi); -webkit-backdrop-filter: blur(10px) saturate(160%); backdrop-filter: blur(10px) saturate(160%); }
+  .btn-ghost:hover, .dark .btn-ghost:hover { background-color: var(--glass-bg-strong); }
+
+  /* Liquid glass: refractive rim plus a displaced backdrop where the browser supports it (Chromium). */
+  .liquid, .dark .liquid {
+    background-color: var(--glass-bg) !important; border-color: var(--glass-border) !important;
+    box-shadow: var(--glass-shadow), inset 0 0 0 1px rgba(255, 255, 255, .25), inset 0 1px 1px rgba(255, 255, 255, .9), inset 0 -10px 18px -10px rgba(255, 255, 255, .35);
+    -webkit-backdrop-filter: blur(14px) saturate(190%); backdrop-filter: blur(14px) saturate(190%);
+    backdrop-filter: blur(8px) url(#liquid-glass) saturate(190%);
+  }
+  .dark .liquid { box-shadow: var(--glass-shadow), inset 0 0 0 1px rgba(255, 255, 255, .10), inset 0 1px 1px rgba(255, 255, 255, .35), inset 0 -10px 18px -10px rgba(255, 255, 255, .10); }
+}
+
+/* Glossy "liquid" buttons: a light-catching highlight over the brand colour. */
+.btn-primary, .btn-accent { position: relative; overflow: hidden; background-image: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 52%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -2px 6px rgba(0, 0, 0, .12), 0 4px 14px rgba(6, 27, 58, .18); }
+.btn-primary::after, .btn-accent::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .45) 50%, transparent 65%); transform: translateX(-120%); transition: transform .6s ease; pointer-events: none; }
+.btn-primary:hover::after, .btn-accent:hover::after { transform: translateX(120%); }
+
+/* Cards lift a little on hover and the sheen follows. */
+.card:is(a) { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  body::before { display: none; }
+  .card, .glass-bar, .glass-panel, .glass-chip, .liquid, .input, .btn-ghost { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-image: none !important; }
+  .card, .glass-panel, .glass-bar { background-color: #fff !important; }
+  .dark .card, .dark .glass-panel, .dark .glass-bar { background-color: #111F36 !important; }
+}
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } .btn-primary::after, .btn-accent::after { display: none; } }

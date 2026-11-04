@@ -8,7 +8,6 @@ import { dealState, money, threadIdOf, type DealKind } from "@/lib/chat";
 import { canSell } from "@relo/core/engine";
 import { Avatar } from "./ui";
 import { ItemThumb } from "./item-bits";
-import { PayButton } from "./pay";
 
 const clock = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
@@ -60,9 +59,7 @@ export function Thread({ item, borrowerId, kind = "rent", onBack }: { item: Item
       </header>
 
       {deal.agreed !== undefined && (
-        <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900"><Check className="h-4 w-4" aria-hidden />Agreed price: {m$(deal.agreed)}{buy ? (item.sold ? " · sold" : me.id === item.ownerId ? "" : " · pay online below, or meet the owner to inspect and pay directly") : me.id !== item.ownerId && " · send your request to lock the dates"}
-          {buy && me.id !== item.ownerId && !item.sold && <span className="ml-auto"><PayButton item={item} /></span>}
-          {buy && me.id === item.ownerId && state.payments.some((p) => p.itemId === item.id && p.buyerId === borrowerId && p.kind === "sale") && <span className="ml-auto rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-bold text-white">Paid online</span>}
+        <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900"><Check className="h-4 w-4" aria-hidden />Agreed price: {m$(deal.agreed)}{buy ? (item.sold ? " · sold" : me.id === item.ownerId ? "" : " · meet the owner to inspect and pay directly") : me.id !== item.ownerId && " · send your request to lock the dates"}
           {buy && me.id === item.ownerId && !item.sold && canSell(item) && <button className="btn-primary btn-sm ml-auto" onClick={() => act(() => actions.markSold(item.id, borrowerId, deal.agreed as number))}>Mark as sold</button>}</div>
       )}
 

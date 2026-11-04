@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_SETTINGS, type AppNotification, type BorrowRequest, type Message, type Item, type Need, type Offer, type Payment, type TrustEvent, type User } from "@relo/core/engine";
+import { DEFAULT_SETTINGS, type AppNotification, type BorrowRequest, type Message, type Item, type Need, type Offer, type TrustEvent, type User } from "@relo/core/engine";
 import type { AppState } from "./seed";
 import { sampleData } from "./samples";
 
@@ -19,7 +19,7 @@ export function sb(): SupabaseClient {
 }
 
 export function emptyState(): AppState {
-  return { version: 1, users: [], items: [], payments: [], requests: [], needs: [], offers: [], trustEvents: [], notifications: [], messages: [], settings: DEFAULT_SETTINGS, currentUserId: "", clockOffset: 0, seededOn: "" };
+  return { version: 1, users: [], items: [], requests: [], needs: [], offers: [], trustEvents: [], notifications: [], messages: [], settings: DEFAULT_SETTINGS, currentUserId: "", clockOffset: 0, seededOn: "" };
 }
 
 type Row = { id: string; data: Record<string, unknown> };
@@ -31,7 +31,7 @@ const unwrap = <T,>(res: { data: unknown; error: { message: string } | null }, w
 /** Loads everything the signed-in user is allowed to see. Returns null when they have no profile yet. */
 export async function loadRemote(userId: string): Promise<AppState | null> {
   const c = sb();
-  const [p, i, r, n, o, t, nt, mg, pm] = await Promise.all([
+  const [p, i, r, n, o, t, nt, mg] = await Promise.all([
     c.from("profiles").select("id,data,settings"),
     c.from("items").select("id,data").order("created_at", { ascending: false }).limit(2000),
     c.from("requests").select("id,data").order("created_at", { ascending: false }).limit(5000),
@@ -40,7 +40,6 @@ export async function loadRemote(userId: string): Promise<AppState | null> {
     c.from("trust_events").select("id,data").limit(10000),
     c.from("notifications").select("id,data").order("created_at", { ascending: false }).limit(200),
     c.from("messages").select("id,data").order("created_at", { ascending: true }).limit(5000),
-    c.from("payments").select("id,data").order("created_at", { ascending: false }).limit(2000),
   ]);
   const profiles = unwrap<Row & { settings: Record<string, number> }>(p, "profiles");
   const mine = profiles.find((x) => x.id === userId);
@@ -59,7 +58,6 @@ export async function loadRemote(userId: string): Promise<AppState | null> {
     trustEvents: [...withId<TrustEvent>(unwrap<Row>(t, "trust events")), ...sample.trustEvents],
     notifications: withId<AppNotification>(unwrap<Row>(nt, "notifications")),
     messages: withId<Message>(unwrap<Row>(mg, "messages")),
-    payments: pm.error ? [] : withId<Payment>(unwrap<Row>(pm, "payments")), // table is optional until migration 0003 is applied
     settings: { ...DEFAULT_SETTINGS, ...(mine.settings ?? {}) },
     currentUserId: userId,
     clockOffset: 0,

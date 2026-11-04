@@ -8,7 +8,6 @@ import {
   type Item,
   type Need,
   type Offer,
-  type Payment,
   type Settings,
   type TrustEvent,
   type Urgency,
@@ -21,7 +20,6 @@ export type AppState = {
   version: number;
   users: User[];
   items: Item[];
-  payments: Payment[];
   requests: BorrowRequest[];
   needs: Need[];
   offers: Offer[];
@@ -200,7 +198,7 @@ export function createSeed(): AppState {
   ];
 
   return {
-    version: STATE_VERSION, users, items, payments: [], requests, needs, offers, trustEvents, notifications, messages: [],
+    version: STATE_VERSION, users, items, requests, needs, offers, trustEvents, notifications, messages: [],
     settings: { ...DEFAULT_SETTINGS }, currentUserId: "u1", clockOffset: 0, seededOn: T,
   };
 }
