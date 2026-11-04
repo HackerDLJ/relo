@@ -35,7 +35,7 @@ pnpm dev:mobile
 
 Configure `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` using your Supabase project settings. Never put a service-role key in either client.
 
-## Current implementation status (v0.2)
+## Current implementation status (v0.3)
 
 `apps/web` is a working, local-first prototype: all 12 modules (discover, two-way matching, listings, needs and offers,
 borrowing lifecycle, fair ranking and waitlist, alternatives, extensions, overdue management, trust, impact, and the

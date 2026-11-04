@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_VERSION } from "@/lib/version";
+
 import { useState } from "react";
 import { FlaskConical, RotateCcw, FastForward } from "lucide-react";
 import { useAct, useStore } from "@/lib/store";
@@ -28,6 +30,7 @@ export default function ProfilePage() {
           <div className="mt-5 grid gap-4 text-sm md:grid-cols-2"><div className="rounded-xl bg-paper p-4"><p className="mb-1.5 font-semibold text-emerald-800">Working for real in this build</p><ul className="list-disc space-y-1 pl-5 text-mute"><li>Listings, photos, search, filters, sorting and match scoring</li><li>Date locking and double-booking prevention</li><li>Ranked requests, waitlist, alternatives, extensions, returns</li><li>Trust and impact updates. Data persists in this browser (localStorage).</li></ul></div>
             <div className="rounded-xl bg-paper p-4"><p className="mb-1.5 font-semibold text-navy-700">Simulated or not built</p><ul className="list-disc space-y-1 pl-5 text-mute"><li>People, items and loans are demo data; accounts have no passwords.</li><li>Notifications are in-app only. No email, SMS or push.</li><li>No server, shared database or sign-in yet, so data isn't shared between devices.</li><li>Locations are neighbourhood-level approximations.</li></ul></div></div></section>}
       </div>
+      <p className="mt-8 text-center text-xs text-mute">RELO v{APP_VERSION}</p>
       <Confirm open={reset} title="Reset all demo data?" confirmLabel="Reset" danger onClose={() => setReset(false)} onConfirm={() => act(() => actions.resetDemo())} body="This replaces everything in this browser with the original seed data, including any items, requests and photos you added." />
     </>
   );
