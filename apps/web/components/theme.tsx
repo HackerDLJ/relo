@@ -34,6 +34,7 @@ export function useTheme() {
   const choose = (t: Theme) => {
     setTheme(t);
     try { localStorage.setItem(KEY, t); } catch { /* storage blocked */ }
+    const h = document.documentElement; h.classList.add("theme-anim"); window.setTimeout(() => h.classList.remove("theme-anim"), 600);
     applyTheme(t);
   };
   return { theme, choose };

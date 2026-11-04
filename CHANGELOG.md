@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2 (2026-11-04)
+- Cozier, smoother UI: spring motion, blur-in page and card entrances, pointer-following glass highlight on cards, lit glass nav pills, rounder shapes, warm background glow, theme cross-fade, glassy scrollbars. All motion respects reduced-motion.
+
 ## 0.3.1 (2026-11-04)
 - Glassmorphism and liquid-glass styling: frosted cards, bars and dialogs over a soft colour field, refractive floating bottom nav, glossy buttons. Falls back to solid surfaces when blur is unsupported or reduced transparency is requested.
 - Fixed the clipped logo in the mobile header.

@@ -50,7 +50,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         const n = badges[href] ?? 0;
         return (
           <Link key={href} href={href} onClick={onNavigate} aria-current={active ? "page" : undefined}
-            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-navy text-white" : "text-ink hover:bg-white"}`}>
+            className={`group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium ${active ? "bg-navy text-white" : "text-ink hover:bg-white/70"}`}>
             <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-cyan" : "text-navy-600"}`} aria-hidden />
             <span className="flex-1 leading-tight">{label}</span>
             {n > 0 && <span className={`min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold ${active ? "bg-cyan text-navy" : "bg-navy text-white"}`}>{n}</span>}

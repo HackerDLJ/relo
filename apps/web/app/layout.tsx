@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/toast";
 import { StoreProvider } from "@/lib/store";
 import { Shell } from "@/components/shell";
 import { THEME_SCRIPT } from "@/components/theme";
+import { GlowTracker } from "@/components/glow";
 
 export const metadata: Metadata = {
   title: { default: "RELO | Resources deserve another life", template: "%s | RELO" },
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G" />
           </filter>
         </svg>
+        <GlowTracker />
         <ToastProvider>
           <StoreProvider>
             <Shell>{children}</Shell>
