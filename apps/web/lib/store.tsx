@@ -180,6 +180,9 @@ export type AuthApi = {
   signIn(email: string, password: string): Promise<string | null>;
   signUp(email: string, password: string, name: string, area: string): Promise<string | null>;
   createProfile(name: string, area: string, bio: string): Promise<string | null>;
+  signInGoogle(): Promise<string | null>;
+  sendPhoneCode(phone: string): Promise<string | null>;
+  verifyPhoneCode(phone: string, code: string): Promise<string | null>;
   signOut(): Promise<void>;
 };
 
@@ -291,7 +294,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       uidRef.current = session.user.id;
-      setEmail(session.user.email ?? null);
+      setEmail(session.user.email || (session.user as { phone?: string }).phone || null);
       setMeta({ name: String(session.user.user_metadata?.name ?? ""), area: String(session.user.user_metadata?.area ?? "") });
       try { await reload(); } catch (e) { toast.error((e as Error).message); setStatus("signedOut"); }
     };
@@ -324,6 +327,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await reload();
         return null;
       } catch (err) { return (err as Error).message; }
+    },
+    async signInGoogle() {
+      const { error } = await sb().auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
+      if (!error) return null;
+      return /not enabled|Unsupported provider/i.test(error.message) ? "Google sign-in isn't switched on for this project yet." : error.message;
+    },
+    async sendPhoneCode(phone) {
+      const { error } = await sb().auth.signInWithOtp({ phone });
+      if (!error) return null;
+      return /provider|sms|twilio|not enabled|Unsupported/i.test(error.message) ? "Phone sign-in isn't switched on for this project yet." : error.message;
+    },
+    async verifyPhoneCode(phone, code) {
+      const { error } = await sb().auth.verifyOtp({ phone, token: code.trim(), type: "sms" });
+      return error ? error.message : null;
     },
     async signOut() { await sb().auth.signOut(); },
   }), [status, email, meta, reload]);

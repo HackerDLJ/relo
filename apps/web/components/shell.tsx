@@ -82,7 +82,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen md:grid md:grid-cols-[272px_1fr]">
       <aside className="sticky top-0 hidden h-screen flex-col gap-4 overflow-y-auto border-r border-line bg-paper px-4 py-5 md:flex">
-        <Link href="/" aria-label="RELO home" className="block"><Logo size={112} /></Link>
+        <Link href="/" aria-label="RELO home" className="block"><Logo size={176} /></Link>
         <NavList />
         {live ? (
           <div className="mt-auto rounded-xl border border-line bg-white p-3 text-xs leading-relaxed text-navy-700">
@@ -100,7 +100,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       <div className="min-w-0">
         <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur md:px-8">
-          <Link href="/" className="md:hidden" aria-label="RELO home"><Logo size={44} /></Link>
+          <Link href="/" className="md:hidden" aria-label="RELO home"><Logo size={60} /></Link>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {live ? (
               <div className="flex items-center gap-2 text-xs text-mute">

@@ -10,7 +10,7 @@ function Frame({ children, title, sub }: { children: React.ReactNode; title: str
     <div className="grid min-h-screen place-items-center bg-paper px-4 py-10">
       <div className="w-full max-w-md">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/relo-logo.png" alt="RELO" width={96} height={96} className="mx-auto mb-5 block rounded-xl" style={{ width: 96, height: 96 }} />
+        <img src="/brand/relo-logo.png" alt="RELO" width={176} height={176} className="mx-auto mb-5 block rounded-2xl" style={{ width: 176, height: 176 }} />
         <div className="card p-6">
           <h1 className="text-2xl font-bold text-navy">{title}</h1>
           <p className="mb-5 mt-1 text-sm text-mute">{sub}</p>
@@ -41,6 +41,27 @@ function SignIn() {
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [via, setVia] = useState<"email" | "phone">("email");
+  const [phone, setPhone] = useState("+91");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function google() {
+    setErr(null);
+    const r = await auth.signInGoogle();
+    if (r) setErr(r);
+  }
+  async function phoneSubmit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null); setNote(null);
+    const num = phone.replace(/[\s-]/g, "");
+    if (!/^\+\d{10,15}$/.test(num)) return setErr("Enter your number with country code, like +919876543210.");
+    setBusy(true);
+    const r = sent ? await auth.verifyPhoneCode(num, code) : await auth.sendPhoneCode(num);
+    setBusy(false);
+    if (r) return setErr(r);
+    if (!sent) { setSent(true); setNote("We sent a 6-digit code by SMS. Enter it below."); }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -57,6 +78,25 @@ function SignIn() {
 
   return (
     <Frame title={mode === "in" ? "Welcome back" : "Join your neighbourhood"} sub={mode === "in" ? "Sign in to borrow, lend and manage your loans." : "Create a free account to share and borrow with people nearby."}>
+      <button type="button" onClick={google} className="btn-ghost mb-3 w-full justify-center gap-2.5">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.2 5.5-4.7 7.2l7.6 5.9c4.4-4.1 6.9-10.1 6.9-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.100 15.900-5.800l-7.600-5.900c-2.100 1.400-4.900 2.300-8.300 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-paper p-1 text-sm font-semibold" role="tablist" aria-label="Sign-in method">
+        {(["email", "phone"] as const).map((v) => <button key={v} role="tab" aria-selected={via === v} type="button" onClick={() => { setVia(v); setErr(null); setNote(null); }} className={`rounded-lg py-2 ${via === v ? "bg-white text-navy shadow-sm" : "text-mute"}`}>{v === "email" ? "Email" : "Phone"}</button>)}
+      </div>
+      {via === "phone" ? (
+        <form onSubmit={phoneSubmit} className="space-y-3.5" noValidate>
+          <label className="block text-sm font-semibold text-navy-700">Mobile number<input type="tel" inputMode="tel" className={`${inputCls} mt-1 font-normal`} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" disabled={sent} /></label>
+          {sent && <label className="block text-sm font-semibold text-navy-700">6-digit code<input inputMode="numeric" maxLength={6} className={`${inputCls} mt-1 font-normal tracking-widest`} value={code} onChange={(e) => setCode(e.target.value)} autoComplete="one-time-code" /></label>}
+          {err && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
+          {note && <p role="status" className="rounded-xl bg-cyan-soft px-3 py-2 text-sm text-navy-700">{note}</p>}
+          <button className="btn-primary w-full" disabled={busy}>{busy ? "Please wait…" : sent ? "Verify and continue" : "Send code"}</button>
+          {sent && <button type="button" className="w-full text-center text-sm text-mute underline" onClick={() => { setSent(false); setCode(""); setNote(null); }}>Use a different number</button>}
+          <p className="text-center text-xs text-mute">New numbers get an account automatically.</p>
+        </form>
+      ) : (
+      <>
       <form onSubmit={submit} className="space-y-3.5" noValidate>
         {mode === "up" && (
           <>
@@ -74,6 +114,8 @@ function SignIn() {
         {mode === "in" ? "New to RELO?" : "Already have an account?"}{" "}
         <button className="font-semibold text-navy underline" onClick={() => { setMode(mode === "in" ? "up" : "in"); setErr(null); setNote(null); }}>{mode === "in" ? "Create an account" : "Sign in"}</button>
       </p>
+      </>
+      )}
     </Frame>
   );
 }
