@@ -1,25 +1,23 @@
-# Test Plan
+# Test Plan and Results
 
-## Automated tests included
-- Available item with full date coverage is eligible.
-- Borrowed item is excluded.
-- Partial date coverage is excluded.
-- Match score includes a component breakdown.
-- Fair request ordering is deterministic and uses access history as a tie-breaker.
+Run on 2026-11-04 against the production build (`next build` then `next start`).
 
-Run with `pnpm test`.
+## Automated unit tests: `pnpm test` (Vitest)
+19 tests, all passing. Covers date locking and overlap, waitlist transitions, match scoring and breakdown sums, fair ranking
+(including non-FCFS and ties), trust rules and bounds, overdue stages and penalties, alternatives, overdue-lock, impact.
 
-## Manual acceptance tests
-1. Create two accounts, one lender and one borrower.
-2. List an item and discover it from the borrower account.
-3. Submit a request with a valid date range.
-4. Submit two competing requests for the same item.
-5. Approve one request and verify the item becomes reserved exactly once.
-6. Attempt a second approval and verify it fails.
-7. Start the loan and verify the item becomes borrowed.
-8. Set due date in the past in a test environment and run the overdue job.
-9. Return the item and verify the item is available again.
-10. Verify a user cannot edit another user's listing or inspect unrelated private requests.
+## Browser tests: Playwright + Chrome (`apps/web/e2e/`)
+Start the app (`pnpm --filter @relo/web build && pnpm --filter @relo/web exec next start -p 3100`), then:
+```
+python3 apps/web/e2e/smoke.py       # every route, desktop 1280px and mobile 390px, console errors, horizontal overflow
+python3 apps/web/e2e/lifecycle.py   # full workflow
+```
+- **Smoke:** 13 routes x 2 viewports render; no console errors; no horizontal overflow after the Trust-page fix.
+- **Lifecycle:** 24 checks: search and filters; empty state; ranked competing requests with explanation; approve moves
+  others to waitlist; locked dates shown; overlap blocked with alternatives and waitlist option; reversed dates rejected;
+  listing validation; publish then find via search; persistence after reload; extension approval; late return lowers
+  trust (53 to 48); waitlisted request reopens after return; impact estimates labelled; all eight differentiators present.
 
-## Concurrency test required before production
-Send simultaneous approval requests for two pending requests on the same item. Exactly one may succeed. This must be tested against PostgreSQL, not only with mocked unit tests.
+## Not yet tested
+Concurrency across tabs/devices, screen-reader accessibility, real Supabase persistence (not built), notification delivery
+(simulated by design), and Safari/Firefox.

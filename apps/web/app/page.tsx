@@ -6,7 +6,7 @@ import { ArrowRight, Megaphone, PackagePlus, ShieldCheck, Leaf, Repeat, Inbox } 
 import { estimateImpact, summarizeTrust, overdueStatus } from "@relo/core/engine";
 import { useStore } from "@/lib/store";
 import { useDerived } from "@/lib/derive";
-import { Badge, EmptyState, PageHeader, Stat, fmtRange, inr } from "@/components/ui";
+import { Badge, EmptyState, PageHeader, Stat, fmtDate, fmtRange, inr } from "@/components/ui";
 import { ItemCard } from "@/components/item-bits";
 import { ListingForm, NeedForm } from "@/components/forms";
 
@@ -52,7 +52,7 @@ export default function HomePage() {
           <div className="grid gap-3 md:grid-cols-2">
             {incoming.slice(0, 3).map((r) => { const it = state.items.find((i) => i.id === r.itemId)!; return (
               <Link key={r.id} href="/listings" className="card flex items-center gap-3 p-4 hover:shadow-pop"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-navy">{userById(r.borrowerId).name} wants {it.title}</p><p className="text-xs text-mute">{fmtRange(r.from, r.until)} · review and rank</p></div><Badge tone="amber">Review</Badge></Link>); })}
-            {ext.map((r) => <Link key={r.id} href="/returns" className="card flex items-center gap-3 p-4 hover:shadow-pop"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-navy">Extension request on {state.items.find((i) => i.id === r.itemId)!.title}</p><p className="text-xs text-mute">Until {r.extension!.requestedUntil}</p></div><Badge tone="cyan">Decide</Badge></Link>)}
+            {ext.map((r) => <Link key={r.id} href="/returns" className="card flex items-center gap-3 p-4 hover:shadow-pop"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-navy">Extension request on {state.items.find((i) => i.id === r.itemId)!.title}</p><p className="text-xs text-mute">Until {fmtDate(r.extension!.requestedUntil)}</p></div><Badge tone="cyan">Decide</Badge></Link>)}
             {dueSoon.slice(0, 2).map(({ r, s }) => <Link key={r.id} href="/loans" className="card flex items-center gap-3 p-4 hover:shadow-pop"><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-navy">Return {state.items.find((i) => i.id === r.itemId)!.title}</p><p className="text-xs text-mute">{s.action}</p></div><Badge tone={s.daysLate > 0 ? "red" : "navy"}>{s.label}</Badge></Link>)}
           </div>
         </section>

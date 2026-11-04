@@ -27,7 +27,7 @@ export default function TrustPage() {
           <div className="mt-4 w-full rounded-xl bg-paper p-3 text-left text-xs leading-relaxed text-mute"><p className="mb-1 font-semibold text-ink">Where trust is used</p><ul className="list-disc space-y-1 pl-4"><li>Owner trust is {MATCH_WEIGHTS.trust}% of an item's match score.</li><li>Borrower trust is {PRIORITY_WEIGHTS.trust}% of request priority.</li><li>A score under 40 is flagged to owners.</li></ul></div>
         </section>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <section className="grid grid-cols-2 gap-3 md:grid-cols-3" aria-label="Reputation stats">
             <Stat label="Successful returns" value={t.successfulReturns} icon={<Undo2 className="h-4 w-4" aria-hidden />} />
             <Stat label="Late returns" value={t.lateReturns} icon={<Clock className="h-4 w-4" aria-hidden />} />

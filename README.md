@@ -35,9 +35,14 @@ pnpm dev:mobile
 
 Configure `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` using your Supabase project settings. Never put a service-role key in either client.
 
-## Current implementation status
+## Current implementation status (v0.2)
 
-This is the initial engineering scaffold. It includes the shared matching algorithm, deterministic fair-ordering helper, initial database schema with RLS, and starter web/mobile screens. Connect Supabase credentials and apply the migration before enabling live persistence.
+`apps/web` is a working, local-first prototype: all 12 modules (discover, two-way matching, listings, needs and offers,
+borrowing lifecycle, fair ranking and waitlist, alternatives, extensions, overdue management, trust, impact, and the
+"What RELO Does Differently" page). Data is demo seed data persisted in the browser (localStorage); notifications and
+moderation are simulated. **There is no server-side persistence yet.** The Supabase schema in `supabase/` is not wired in.
+
+See `docs/ALGORITHM.md`, `docs/EDGE_CASES.md` and `docs/TESTING.md`.
 
 ## Scripts
 
